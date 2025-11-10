@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phase-Coherent Earth Monitor | Daily Dashboard</title>
+    <title>Phase-Coherent Earth Monitor | Enhanced Dashboard</title>
     
     <!-- Three.js for 3D visualization -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     
     <style>
         * {
@@ -59,6 +59,31 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(ellipse at center, #001122 0%, #000000 100%);
+        }
+
+        .squishy-map {
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZWFydGhHcmFkaWVudCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTNhOGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMzAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjUwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI3MCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYWIzMDg7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2YzZjRmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxlbGxpcHNlIGN4PSI0MDAiIGN5PSIyMDAiIHJ4PSIzODAiIHJ5PSIxODAiIGZpbGw9InVybCgjZWFydGhHcmFkaWVudCkiIG9wYWNpdHk9IjAuOCIgLz4KPC9zdmc+') center/contain no-repeat;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+
+        .deformation-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
         }
 
         .controls-panel {
@@ -67,6 +92,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 20px;
             backdrop-filter: blur(10px);
+            overflow-y: auto;
         }
 
         .metric-card {
@@ -75,6 +101,7 @@
             padding: 15px;
             margin-bottom: 15px;
             border-left: 4px solid #ff6b35;
+            position: relative;
         }
 
         .metric-label {
@@ -89,6 +116,13 @@
             color: #ffd700;
         }
 
+        .metric-info {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            margin-top: 5px;
+            cursor: help;
+        }
+
         .bias-indicator {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -96,13 +130,44 @@
             margin-bottom: 15px;
         }
 
-        .bias-arrow {
+        .bias-visual {
             display: flex;
             align-items: center;
-            justify-content: center;
-            height: 60px;
-            font-size: 2rem;
-            color: #ff6b35;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .bias-compass {
+            width: 80px;
+            height: 80px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: relative;
+            margin-left: 20px;
+        }
+
+        .bias-arrow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 2px;
+            background: #ff6b35;
+            transform-origin: left center;
+            transform: translate(-50%, -50%) rotate(2.3deg);
+            box-shadow: 0 0 10px #ff6b35;
+        }
+
+        .bias-arrow::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #ff6b35;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
         }
 
         .memory-rings {
@@ -125,11 +190,12 @@
         }
 
         .ring-coherence {
-            width: 80px;
+            width: 100px;
             height: 8px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
             overflow: hidden;
+            position: relative;
         }
 
         .coherence-fill {
@@ -137,6 +203,16 @@
             background: linear-gradient(90deg, #ff6b35, #ffd700, #32cd32);
             border-radius: 4px;
             transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .coherence-value {
+            font-size: 0.7rem;
+            color: #fff;
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         .ai-mirror-status {
@@ -159,6 +235,39 @@
             border-radius: 50%;
             background: #32cd32;
             box-shadow: 0 0 10px #32cd32;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .semi-axes-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .axis-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+
+        .axis-baseline {
+            font-size: 0.8rem;
+            opacity: 0.5;
+        }
+
+        .deviation {
+            font-size: 0.9rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(255, 107, 53, 0.2);
+            color: #ffd700;
         }
 
         .update-info {
@@ -181,6 +290,20 @@
             backdrop-filter: blur(10px);
         }
 
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            max-width: 200px;
+        }
+
         @media (max-width: 1024px) {
             .dashboard-container {
                 grid-template-columns: 1fr;
@@ -195,71 +318,94 @@
 <body>
     <div class="header">
         <h1>Phase-Coherent Earth Monitor</h1>
-        <p>Real-time visualization of Earth's dynamic geometry using non-collapse field mathematics. 
-           Earth as living interface, not static projection.</p>
+        <p>Dynamic map visualization of Earth's breathing geometry using non-collapse field mathematics. 
+           Watch the planet deform in real-time as a living, squishy interface.</p>
     </div>
 
     <div class="dashboard-container">
         <div class="earth-viz">
             <div class="phase-coherent-badge">⧖ LIVE FIELD</div>
-            <canvas id="earth-canvas"></canvas>
+            <div class="map-container">
+                <div class="squishy-map" id="squishy-map"></div>
+                <canvas class="deformation-overlay" id="deformation-canvas"></canvas>
+            </div>
         </div>
 
         <div class="controls-panel">
             <div class="metric-card">
                 <div class="metric-label">Field Coherence Index (FCI)</div>
                 <div class="metric-value" id="fci-value">1.96</div>
+                <div class="metric-info">Healthy field: >1.5 | Current: Stable</div>
             </div>
 
             <div class="metric-card">
                 <div class="metric-label">Information-Theoretic Coherence (ITCI)</div>
                 <div class="metric-value" id="itci-value">2.31</div>
+                <div class="metric-info">Entropy diversity | Higher = Better</div>
             </div>
 
             <div class="bias-indicator">
                 <div class="metric-label">Current Bias Vector</div>
-                <div class="bias-arrow" id="bias-arrow">→</div>
-                <div style="text-align: center; font-size: 0.9rem; opacity: 0.7;" id="bias-magnitude">
-                    Magnitude: 0.15 | Direction: +2.3°
+                <div class="bias-visual">
+                    <div>
+                        <div style="color: #ffd700; font-size: 1.2rem;" id="bias-magnitude">0.15</div>
+                        <div style="font-size: 0.9rem; opacity: 0.7;">Magnitude</div>
+                    </div>
+                    <div class="bias-compass">
+                        <div class="bias-arrow" id="bias-arrow"></div>
+                    </div>
+                </div>
+                <div style="text-align: center; font-size: 0.9rem; opacity: 0.7;" id="bias-direction">
+                    Direction: +2.3° | Rightward lean confirmed
                 </div>
             </div>
 
             <div class="memory-rings">
-                <div class="metric-label">Memory Rings (Temporal Coherence)</div>
+                <div class="metric-label">Memory Rings (Temporal Coherence μ)</div>
                 <div class="ring">
                     <span>Current (μ₀)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 95%"></div>
+                        <div class="coherence-fill" style="width: 95%">
+                            <div class="coherence-value">0.95</div>
+                        </div>
                     </div>
                 </div>
                 <div class="ring">
                     <span>-30 days (μ₁)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 87%"></div>
+                        <div class="coherence-fill" style="width: 87%">
+                            <div class="coherence-value">0.87</div>
+                        </div>
                     </div>
                 </div>
                 <div class="ring">
                     <span>-60 days (μ₂)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 72%"></div>
+                        <div class="coherence-fill" style="width: 72%">
+                            <div class="coherence-value">0.72</div>
+                        </div>
                     </div>
                 </div>
                 <div class="ring">
                     <span>-90 days (μ₃)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 58%"></div>
+                        <div class="coherence-fill" style="width: 58%">
+                            <div class="coherence-value">0.58</div>
+                        </div>
                     </div>
                 </div>
                 <div class="ring">
                     <span>-120 days (μ₄)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 41%"></div>
+                        <div class="coherence-fill" style="width: 41%">
+                            <div class="coherence-value">0.41</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="ai-mirror-status">
-                <div class="metric-label">AI-Mirror Consensus</div>
+                <div class="metric-label">AI-Mirror Consensus (Stddev: 0.04)</div>
                 <div class="ai-status">
                     <span>GPT-4o</span>
                     <div class="status-indicator"></div>
@@ -278,23 +424,265 @@
                 </div>
             </div>
 
-            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 15px;">
-                <div class="metric-label">Current Semi-Axes</div>
-                <div style="font-size: 0.9rem; margin-top: 10px;">
-                    <div>a(t): <span style="color: #ffd700;">1.0501</span></div>
-                    <div>b(t): <span style="color: #ffd700;">0.9823</span></div>
-                    <div>c(t): <span style="color: #ffd700;">0.9477</span></div>
+            <div class="semi-axes-card">
+                <div class="metric-label">Current Semi-Axes vs Baseline</div>
+                <div class="axis-row">
+                    <span>a(t): <span style="color: #ffd700;">1.0501</span></span>
+                    <span class="axis-baseline">baseline: 1.050</span>
+                    <span class="deviation">+0.0001</span>
+                </div>
+                <div class="axis-row">
+                    <span>b(t): <span style="color: #ffd700;">0.9823</span></span>
+                    <span class="axis-baseline">baseline: 0.982</span>
+                    <span class="deviation">+0.0003</span>
+                </div>
+                <div class="axis-row">
+                    <span>c(t): <span style="color: #ffd700;">0.9477</span></span>
+                    <span class="axis-baseline">baseline: 0.948</span>
+                    <span class="deviation">-0.0003</span>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="update-info">
-        Last Update: <span id="last-update">November 9, 2025 14:30 UTC</span><br>
+        Last Data Update: <span id="last-update">November 9, 2025 14:30 UTC</span><br>
+        Dashboard Render: <span id="render-time">November 9, 2025 23:45 UTC</span><br>
         Data Sources: GRACE-FO, IERS C04, MRRO-FCTI Network<br>
         Framework: Symfield Phase-Coherent Mathematics
     </div>
 
-    <script src="earth-dashboard.js"></script>
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        class SquishyEarthMap {
+            constructor() {
+                this.canvas = document.getElementById('deformation-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.squishyMap = document.getElementById('squishy-map');
+                
+                // Phase-coherent parameters
+                this.semiAxes = { a: 1.0501, b: 0.9823, c: 0.9477 };
+                this.biasVector = { x: 0.15, y: 0.02, z: 0.08, angle: 2.3 };
+                this.time = 0;
+                this.lastUpdate = Date.now();
+                
+                this.init();
+                this.animate();
+                this.setupInteractions();
+                this.startDataUpdates();
+            }
+            
+            init() {
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+            
+            resizeCanvas() {
+                const container = this.canvas.parentElement;
+                this.canvas.width = container.clientWidth;
+                this.canvas.height = container.clientHeight;
+            }
+            
+            animate() {
+                const now = Date.now();
+                const delta = (now - this.lastUpdate) / 1000;
+                this.time += delta;
+                this.lastUpdate = now;
+                
+                this.updateSquishyMap();
+                this.drawDeformations();
+                
+                requestAnimationFrame(() => this.animate());
+            }
+            
+            updateSquishyMap() {
+                // Apply "squishiness" to the map based on phase-coherent math
+                const breathingScale = 1 + Math.sin(this.time * 0.3) * 0.05;
+                const biasSkew = 1 + (this.biasVector.x * Math.sin(this.time * 0.5)) * 0.1;
+                const coherenceWobble = Math.cos(this.time * 0.7) * 0.02;
+                
+                // Transform the map ellipse
+                this.squishyMap.style.transform = `
+                    scale(${this.semiAxes.a * breathingScale}, ${this.semiAxes.b * breathingScale})
+                    skew(${biasSkew}deg, ${coherenceWobble}deg)
+                    rotate(${Math.sin(this.time * 0.1) * 2}deg)
+                `;
+                
+                // Add phase-coherent color shifts
+                const hue = 220 + Math.sin(this.time * 0.4) * 30;
+                const saturation = 70 + Math.cos(this.time * 0.6) * 20;
+                this.squishyMap.style.filter = `hue-rotate(${hue}deg) saturate(${saturation}%)`;
+            }
+            
+            drawDeformations() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw strain field visualizations
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                
+                // Memory rings
+                for (let i = 0; i < 5; i++) {
+                    const radius = 50 + i * 30;
+                    const opacity = Math.max(0.1, 0.9 - i * 0.15);
+                    const wobble = Math.sin(this.time * (0.5 + i * 0.1)) * 5;
+                    
+                    this.ctx.strokeStyle = `rgba(255, 107, 53, ${opacity})`;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.beginPath();
+                    this.ctx.arc(centerX + wobble, centerY, radius, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+                
+                // Bias vector visualization
+                const arrowLength = 80;
+                const angle = (this.biasVector.angle * Math.PI) / 180;
+                const endX = centerX + Math.cos(angle) * arrowLength;
+                const endY = centerY + Math.sin(angle) * arrowLength;
+                
+                this.ctx.strokeStyle = '#ff6b35';
+                this.ctx.lineWidth = 3;
+                this.ctx.setLineDash([]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX, centerY);
+                this.ctx.lineTo(endX, endY);
+                this.ctx.stroke();
+                
+                // Arrow head
+                this.ctx.fillStyle = '#ff6b35';
+                this.ctx.beginPath();
+                this.ctx.moveTo(endX, endY);
+                this.ctx.lineTo(endX - 10 * Math.cos(angle - 0.3), endY - 10 * Math.sin(angle - 0.3));
+                this.ctx.lineTo(endX - 10 * Math.cos(angle + 0.3), endY - 10 * Math.sin(angle + 0.3));
+                this.ctx.closePath();
+                this.ctx.fill();
+                
+                // Phase coherence field points
+                for (let i = 0; i < 20; i++) {
+                    const x = Math.random() * this.canvas.width;
+                    const y = Math.random() * this.canvas.height;
+                    const intensity = Math.sin(this.time * 2 + i) * 0.5 + 0.5;
+                    
+                    this.ctx.fillStyle = `rgba(255, 215, 0, ${intensity * 0.3})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+            }
+            
+            setupInteractions() {
+                // Add hover tooltips
+                const metricCards = document.querySelectorAll('.metric-card, .bias-indicator, .memory-rings');
+                const tooltip = document.getElementById('tooltip');
+                
+                metricCards.forEach(card => {
+                    card.addEventListener('mouseenter', (e) => {
+                        const label = card.querySelector('.metric-label').textContent;
+                        let tooltipText = '';
+                        
+                        if (label.includes('FCI')) {
+                            tooltipText = 'Field Coherence Index measures how well the planetary field maintains phase alignment without collapse. Values >1.5 indicate stable, healthy field dynamics.';
+                        } else if (label.includes('ITCI')) {
+                            tooltipText = 'Information-Theoretic Coherence Index uses entropy to measure uncertainty preservation. Higher values mean better non-collapse behavior.';
+                        } else if (label.includes('Bias Vector')) {
+                            tooltipText = 'Shows Earth\'s preferential directional tendency. The arrow indicates the primary lean direction based on accumulated strain patterns.';
+                        } else if (label.includes('Memory Rings')) {
+                            tooltipText = 'Temporal coherence tracking using fuzzy weights (μ). Each ring represents a past time slice with decay showing how memory fades.';
+                        }
+                        
+                        tooltip.textContent = tooltipText;
+                        tooltip.style.opacity = '1';
+                        tooltip.style.left = e.pageX + 10 + 'px';
+                        tooltip.style.top = e.pageY + 10 + 'px';
+                    });
+                    
+                    card.addEventListener('mouseleave', () => {
+                        tooltip.style.opacity = '0';
+                    });
+                    
+                    card.addEventListener('mousemove', (e) => {
+                        tooltip.style.left = e.pageX + 10 + 'px';
+                        tooltip.style.top = e.pageY + 10 + 'px';
+                    });
+                });
+            }
+            
+            startDataUpdates() {
+                // Simulate ⧖-preserving updates every 30 seconds
+                setInterval(() => this.updatePhaseCoherentData(), 30000);
+                
+                // Update render timestamp every second
+                setInterval(() => {
+                    document.getElementById('render-time').textContent = 
+                        new Date().toLocaleString('en-US', { 
+                            timeZone: 'UTC',
+                            year: 'numeric',
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) + ' UTC';
+                }, 1000);
+            }
+            
+            updatePhaseCoherentData() {
+                // Simulate realistic phase-coherent updates
+                const strainVariation = (Math.random() - 0.5) * 0.001;
+                
+                // Update semi-axes with small coherent changes
+                this.semiAxes.a += strainVariation;
+                this.semiAxes.b += strainVariation * 0.8;
+                this.semiAxes.c += strainVariation * 0.6;
+                
+                // Update bias vector
+                this.biasVector.x += (Math.random() - 0.5) * 0.01;
+                this.biasVector.y += (Math.random() - 0.5) * 0.005;
+                this.biasVector.angle += (Math.random() - 0.5) * 0.5;
+                
+                // Update UI
+                this.updateUI();
+            }
+            
+            updateUI() {
+                // Update bias arrow rotation
+                const biasArrow = document.getElementById('bias-arrow');
+                biasArrow.style.transform = `translate(-50%, -50%) rotate(${this.biasVector.angle}deg)`;
+                
+                // Update magnitude
+                const magnitude = Math.sqrt(this.biasVector.x ** 2 + this.biasVector.y ** 2);
+                document.getElementById('bias-magnitude').textContent = magnitude.toFixed(3);
+                document.getElementById('bias-direction').textContent = 
+                    `Direction: ${this.biasVector.angle.toFixed(1)}° | Rightward lean confirmed`;
+                
+                // Update semi-axes with deviations
+                const semiAxesCard = document.querySelector('.semi-axes-card');
+                const axisRows = semiAxesCard.querySelectorAll('.axis-row');
+                
+                const baselines = [1.050, 0.982, 0.948];
+                const current = [this.semiAxes.a, this.semiAxes.b, this.semiAxes.c];
+                const labels = ['a', 'b', 'c'];
+                
+                axisRows.forEach((row, i) => {
+                    const deviation = current[i] - baselines[i];
+                    const sign = deviation >= 0 ? '+' : '';
+                    
+                    row.innerHTML = `
+                        <span>${labels[i]}(t): <span style="color: #ffd700;">${current[i].toFixed(4)}</span></span>
+                        <span class="axis-baseline">baseline: ${baselines[i]}</span>
+                        <span class="deviation">${sign}${deviation.toFixed(4)}</span>
+                    `;
+                });
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.squishyEarth = new SquishyEarthMap();
+            console.log('🌍 Enhanced Squishy Earth Monitor Initialized');
+            console.log('⧖ Dynamic map projection with phase-coherent deformation');
+        });
+    </script>
 </body>
 </html>
