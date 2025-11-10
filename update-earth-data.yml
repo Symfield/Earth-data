@@ -1,0 +1,44 @@
+name: Update Earth Data
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours at top of hour
+  workflow_dispatch:  # Manual trigger button in GitHub Actions tab
+  
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch full history
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install numpy pandas requests scipy datetime
+        
+    - name: Run Earth backend calculations
+      run: python earth_backend.py
+      
+    - name: Commit updated Earth data
+      run: |
+        git config --local user.email "earth-bot@symfield.ai"
+        git config --local user.name "Earth Data Bot"
+        git add -A
+        if ! git diff --staged --quiet; then
+          git commit -m "🌍 Auto-update Earth phase-coherent data $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+          echo "Earth data updated successfully!"
+        else
+          echo "No changes to commit"
+        fi
+
+    - name: Update workflow status
+      if: failure()
+      run: |
+        echo "❌ Earth data update failed at $(date -u)"
+        echo "Check logs and data sources"
