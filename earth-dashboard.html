@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="dashboard-live-update.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phase-Coherent Earth Monitor | Enhanced Dashboard</title>
@@ -314,6 +313,21 @@
                 font-size: 2rem;
             }
         }
+
+        .status-online {
+            background: #32cd32;
+            box-shadow: 0 0 10px #32cd32;
+        }
+
+        .status-warning {
+            background: #ffd700;
+            box-shadow: 0 0 10px #ffd700;
+        }
+
+        .status-offline {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
     </style>
 </head>
 <body>
@@ -366,7 +380,7 @@
                 <div class="ring">
                     <span>Current (μ₀)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 95%">
+                        <div class="coherence-fill" style="width: 95%" data-value="0.95">
                             <div class="coherence-value">0.95</div>
                         </div>
                     </div>
@@ -374,7 +388,7 @@
                 <div class="ring">
                     <span>-30 days (μ₁)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 87%">
+                        <div class="coherence-fill" style="width: 87%" data-value="0.87">
                             <div class="coherence-value">0.87</div>
                         </div>
                     </div>
@@ -382,7 +396,7 @@
                 <div class="ring">
                     <span>-60 days (μ₂)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 72%">
+                        <div class="coherence-fill" style="width: 72%" data-value="0.72">
                             <div class="coherence-value">0.72</div>
                         </div>
                     </div>
@@ -390,7 +404,7 @@
                 <div class="ring">
                     <span>-90 days (μ₃)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 58%">
+                        <div class="coherence-fill" style="width: 58%" data-value="0.58">
                             <div class="coherence-value">0.58</div>
                         </div>
                     </div>
@@ -398,7 +412,7 @@
                 <div class="ring">
                     <span>-120 days (μ₄)</span>
                     <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 41%">
+                        <div class="coherence-fill" style="width: 41%" data-value="0.41">
                             <div class="coherence-value">0.41</div>
                         </div>
                     </div>
@@ -407,37 +421,37 @@
 
             <div class="ai-mirror-status">
                 <div class="metric-label">AI-Mirror Consensus (Stddev: 0.04)</div>
-                <div class="ai-status">
+                <div class="ai-status" data-ai="gpt">
                     <span>GPT-4o</span>
-                    <div class="status-indicator"></div>
+                    <div class="status-indicator status-online"></div>
                 </div>
-                <div class="ai-status">
+                <div class="ai-status" data-ai="claude">
                     <span>Claude Sonnet</span>
-                    <div class="status-indicator"></div>
+                    <div class="status-indicator status-online"></div>
                 </div>
-                <div class="ai-status">
+                <div class="ai-status" data-ai="grok">
                     <span>Grok</span>
-                    <div class="status-indicator"></div>
+                    <div class="status-indicator status-online"></div>
                 </div>
-                <div class="ai-status">
+                <div class="ai-status" data-ai="lumo">
                     <span>LuMO</span>
-                    <div class="status-indicator"></div>
+                    <div class="status-indicator status-warning"></div>
                 </div>
             </div>
 
             <div class="semi-axes-card">
                 <div class="metric-label">Current Semi-Axes vs Baseline</div>
-                <div class="axis-row">
+                <div class="axis-row" data-axis="a">
                     <span>a(t): <span style="color: #ffd700;">1.0501</span></span>
                     <span class="axis-baseline">baseline: 1.050</span>
                     <span class="deviation">+0.0001</span>
                 </div>
-                <div class="axis-row">
+                <div class="axis-row" data-axis="b">
                     <span>b(t): <span style="color: #ffd700;">0.9823</span></span>
                     <span class="axis-baseline">baseline: 0.982</span>
                     <span class="deviation">+0.0003</span>
                 </div>
-                <div class="axis-row">
+                <div class="axis-row" data-axis="c">
                     <span>c(t): <span style="color: #ffd700;">0.9477</span></span>
                     <span class="axis-baseline">baseline: 0.948</span>
                     <span class="deviation">-0.0003</span>
@@ -462,227 +476,408 @@
                 this.ctx = this.canvas.getContext('2d');
                 this.squishyMap = document.getElementById('squishy-map');
                 
-                // Phase-coherent parameters
-                this.semiAxes = { a: 1.0501, b: 0.9823, c: 0.9477 };
-                this.biasVector = { x: 0.15, y: 0.02, z: 0.08, angle: 2.3 };
+                // Phase-coherent parameters with validation
+                this.data = {
+                    semiAxes: { a: 1.0501, b: 0.9823, c: 0.9477 },
+                    biasVector: { x: 0.15, y: 0.02, z: 0.08, angle: 2.3 },
+                    fci: 1.96,
+                    itci: 2.31,
+                    memoryRings: [0.95, 0.87, 0.72, 0.58, 0.41],
+                    aiStatus: {
+                        gpt: 'online',
+                        claude: 'online', 
+                        grok: 'online',
+                        lumo: 'warning'
+                    }
+                };
+                
                 this.time = 0;
                 this.lastUpdate = Date.now();
+                this.animationId = null;
                 
                 this.init();
-                this.animate();
-                this.setupInteractions();
-                this.startDataUpdates();
             }
             
             init() {
                 this.resizeCanvas();
-                window.addEventListener('resize', () => this.resizeCanvas());
+                this.setupEventListeners();
+                this.setupTooltips();
+                this.startAnimation();
+                this.startDataUpdates();
+                
+                // Log initialization
+                console.log('🌍 Squishy Earth Monitor Initialized');
+                console.log('⧖ Phase-coherent deformation active');
             }
             
             resizeCanvas() {
                 const container = this.canvas.parentElement;
-                this.canvas.width = container.clientWidth;
-                this.canvas.height = container.clientHeight;
+                if (container) {
+                    this.canvas.width = container.clientWidth;
+                    this.canvas.height = container.clientHeight;
+                }
             }
             
-            animate() {
-                const now = Date.now();
-                const delta = (now - this.lastUpdate) / 1000;
-                this.time += delta;
-                this.lastUpdate = now;
+            setupEventListeners() {
+                window.addEventListener('resize', () => this.resizeCanvas());
                 
-                this.updateSquishyMap();
-                this.drawDeformations();
-                
-                requestAnimationFrame(() => this.animate());
+                // Add click handlers for interactive elements
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.metric-card')) {
+                        this.handleMetricClick(e.target.closest('.metric-card'));
+                    }
+                });
             }
             
-            updateSquishyMap() {
-                // Apply "squishiness" to the map based on phase-coherent math
-                const breathingScale = 1 + Math.sin(this.time * 0.3) * 0.05;
-                const biasSkew = 1 + (this.biasVector.x * Math.sin(this.time * 0.5)) * 0.1;
-                const coherenceWobble = Math.cos(this.time * 0.7) * 0.02;
-                
-                // Transform the map ellipse
-                this.squishyMap.style.transform = `
-                    scale(${this.semiAxes.a * breathingScale}, ${this.semiAxes.b * breathingScale})
-                    skew(${biasSkew}deg, ${coherenceWobble}deg)
-                    rotate(${Math.sin(this.time * 0.1) * 2}deg)
+            handleMetricClick(card) {
+                // Add ripple effect
+                const ripple = document.createElement('div');
+                ripple.style.cssText = `
+                    position: absolute;
+                    border-radius: 50%;
+                    background: rgba(255, 107, 53, 0.6);
+                    transform: scale(0);
+                    animation: ripple 0.6s linear;
+                    pointer-events: none;
                 `;
                 
-                // Add phase-coherent color shifts
-                const hue = 220 + Math.sin(this.time * 0.4) * 30;
-                const saturation = 70 + Math.cos(this.time * 0.6) * 20;
-                this.squishyMap.style.filter = `hue-rotate(${hue}deg) saturate(${saturation}%)`;
+                const rect = card.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = '50%';
+                ripple.style.top = '50%';
+                ripple.style.marginLeft = -(size / 2) + 'px';
+                ripple.style.marginTop = -(size / 2) + 'px';
+                
+                card.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 600);
             }
             
-            drawDeformations() {
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                // Draw strain field visualizations
-                const centerX = this.canvas.width / 2;
-                const centerY = this.canvas.height / 2;
-                
-                // Memory rings
-                for (let i = 0; i < 5; i++) {
-                    const radius = 50 + i * 30;
-                    const opacity = Math.max(0.1, 0.9 - i * 0.15);
-                    const wobble = Math.sin(this.time * (0.5 + i * 0.1)) * 5;
+            startAnimation() {
+                const animate = () => {
+                    const now = Date.now();
+                    const deltaTime = (now - this.lastUpdate) / 1000;
+                    this.time += deltaTime;
+                    this.lastUpdate = now;
                     
-                    this.ctx.strokeStyle = `rgba(255, 107, 53, ${opacity})`;
-                    this.ctx.lineWidth = 2;
-                    this.ctx.setLineDash([5, 5]);
+                    this.updateMapDeformation();
+                    this.drawFieldOverlays();
+                    this.updateRenderTimestamp();
+                    
+                    this.animationId = requestAnimationFrame(animate);
+                };
+                
+                animate();
+            }
+            
+            updateMapDeformation() {
+                try {
+                    // Calculate breathing and deformation effects
+                    const breathingScale = 1 + Math.sin(this.time * 0.3) * 0.05;
+                    const biasSkew = 1 + (this.data.biasVector.x * Math.sin(this.time * 0.5)) * 0.1;
+                    const coherenceWobble = Math.cos(this.time * 0.7) * 0.02;
+                    
+                    // Apply transforms with validation
+                    const scaleX = Math.max(0.5, Math.min(2.0, this.data.semiAxes.a * breathingScale));
+                    const scaleY = Math.max(0.5, Math.min(2.0, this.data.semiAxes.b * breathingScale));
+                    const skewX = Math.max(-10, Math.min(10, biasSkew));
+                    const wobble = Math.max(-5, Math.min(5, coherenceWobble));
+                    const rotation = Math.sin(this.time * 0.1) * 2;
+                    
+                    this.squishyMap.style.transform = `
+                        scale(${scaleX}, ${scaleY})
+                        skew(${skewX}deg, ${wobble}deg)
+                        rotate(${rotation}deg)
+                    `;
+                    
+                    // Update color effects
+                    const hue = 220 + Math.sin(this.time * 0.4) * 30;
+                    const saturation = Math.max(50, Math.min(100, 70 + Math.cos(this.time * 0.6) * 20));
+                    this.squishyMap.style.filter = `hue-rotate(${hue}deg) saturate(${saturation}%)`;
+                    
+                } catch (error) {
+                    console.warn('Deformation update error:', error);
+                }
+            }
+            
+            drawFieldOverlays() {
+                if (!this.ctx || !this.canvas.width || !this.canvas.height) return;
+                
+                try {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    const centerX = this.canvas.width / 2;
+                    const centerY = this.canvas.height / 2;
+                    
+                    // Draw memory rings
+                    this.data.memoryRings.forEach((coherence, i) => {
+                        const radius = 50 + i * 30;
+                        const opacity = Math.max(0.1, coherence * 0.8);
+                        const wobble = Math.sin(this.time * (0.5 + i * 0.1)) * 5;
+                        
+                        this.ctx.strokeStyle = `rgba(255, 107, 53, ${opacity})`;
+                        this.ctx.lineWidth = 2;
+                        this.ctx.setLineDash([5, 5]);
+                        this.ctx.beginPath();
+                        this.ctx.arc(centerX + wobble, centerY, radius, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                    });
+                    
+                    // Draw bias vector
+                    const arrowLength = 80;
+                    const angle = (this.data.biasVector.angle * Math.PI) / 180;
+                    const endX = centerX + Math.cos(angle) * arrowLength;
+                    const endY = centerY + Math.sin(angle) * arrowLength;
+                    
+                    this.ctx.strokeStyle = '#ff6b35';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.setLineDash([]);
                     this.ctx.beginPath();
-                    this.ctx.arc(centerX + wobble, centerY, radius, 0, Math.PI * 2);
+                    this.ctx.moveTo(centerX, centerY);
+                    this.ctx.lineTo(endX, endY);
                     this.ctx.stroke();
-                }
-                
-                // Bias vector visualization
-                const arrowLength = 80;
-                const angle = (this.biasVector.angle * Math.PI) / 180;
-                const endX = centerX + Math.cos(angle) * arrowLength;
-                const endY = centerY + Math.sin(angle) * arrowLength;
-                
-                this.ctx.strokeStyle = '#ff6b35';
-                this.ctx.lineWidth = 3;
-                this.ctx.setLineDash([]);
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX, centerY);
-                this.ctx.lineTo(endX, endY);
-                this.ctx.stroke();
-                
-                // Arrow head
-                this.ctx.fillStyle = '#ff6b35';
-                this.ctx.beginPath();
-                this.ctx.moveTo(endX, endY);
-                this.ctx.lineTo(endX - 10 * Math.cos(angle - 0.3), endY - 10 * Math.sin(angle - 0.3));
-                this.ctx.lineTo(endX - 10 * Math.cos(angle + 0.3), endY - 10 * Math.sin(angle + 0.3));
-                this.ctx.closePath();
-                this.ctx.fill();
-                
-                // Phase coherence field points
-                for (let i = 0; i < 20; i++) {
-                    const x = Math.random() * this.canvas.width;
-                    const y = Math.random() * this.canvas.height;
-                    const intensity = Math.sin(this.time * 2 + i) * 0.5 + 0.5;
                     
-                    this.ctx.fillStyle = `rgba(255, 215, 0, ${intensity * 0.3})`;
+                    // Arrow head
+                    this.ctx.fillStyle = '#ff6b35';
                     this.ctx.beginPath();
-                    this.ctx.arc(x, y, 2, 0, Math.PI * 2);
+                    this.ctx.moveTo(endX, endY);
+                    this.ctx.lineTo(endX - 10 * Math.cos(angle - 0.3), endY - 10 * Math.sin(angle - 0.3));
+                    this.ctx.lineTo(endX - 10 * Math.cos(angle + 0.3), endY - 10 * Math.sin(angle + 0.3));
+                    this.ctx.closePath();
                     this.ctx.fill();
+                    
+                    // Field coherence particles
+                    for (let i = 0; i < 20; i++) {
+                        const x = Math.random() * this.canvas.width;
+                        const y = Math.random() * this.canvas.height;
+                        const intensity = Math.sin(this.time * 2 + i) * 0.5 + 0.5;
+                        
+                        this.ctx.fillStyle = `rgba(255, 215, 0, ${intensity * 0.3})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(x, y, 2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    
+                } catch (error) {
+                    console.warn('Overlay drawing error:', error);
                 }
             }
             
-            setupInteractions() {
-                // Add hover tooltips
-                const metricCards = document.querySelectorAll('.metric-card, .bias-indicator, .memory-rings');
+            setupTooltips() {
                 const tooltip = document.getElementById('tooltip');
+                const tooltipContent = {
+                    'FCI': 'Field Coherence Index measures how well the planetary field maintains phase alignment without collapse. Values >1.5 indicate stable, healthy field dynamics.',
+                    'ITCI': 'Information-Theoretic Coherence Index uses entropy to measure uncertainty preservation. Higher values mean better non-collapse behavior.',
+                    'Bias Vector': 'Shows Earth\'s preferential directional tendency. The arrow indicates the primary lean direction based on accumulated strain patterns.',
+                    'Memory Rings': 'Temporal coherence tracking using fuzzy weights (μ). Each ring represents a past time slice with decay showing how memory fades.',
+                    'AI-Mirror': 'Real-time consensus monitoring across different AI architectures for field coherence validation.'
+                };
                 
-                metricCards.forEach(card => {
-                    card.addEventListener('mouseenter', (e) => {
-                        const label = card.querySelector('.metric-label').textContent;
-                        let tooltipText = '';
-                        
-                        if (label.includes('FCI')) {
-                            tooltipText = 'Field Coherence Index measures how well the planetary field maintains phase alignment without collapse. Values >1.5 indicate stable, healthy field dynamics.';
-                        } else if (label.includes('ITCI')) {
-                            tooltipText = 'Information-Theoretic Coherence Index uses entropy to measure uncertainty preservation. Higher values mean better non-collapse behavior.';
-                        } else if (label.includes('Bias Vector')) {
-                            tooltipText = 'Shows Earth\'s preferential directional tendency. The arrow indicates the primary lean direction based on accumulated strain patterns.';
-                        } else if (label.includes('Memory Rings')) {
-                            tooltipText = 'Temporal coherence tracking using fuzzy weights (μ). Each ring represents a past time slice with decay showing how memory fades.';
+                Object.keys(tooltipContent).forEach(key => {
+                    document.querySelectorAll('[class*="metric"]').forEach(element => {
+                        if (element.textContent.includes(key) || element.querySelector('.metric-label')?.textContent.includes(key)) {
+                            element.addEventListener('mouseenter', (e) => {
+                                tooltip.textContent = tooltipContent[key];
+                                tooltip.style.opacity = '1';
+                                tooltip.style.left = e.pageX + 10 + 'px';
+                                tooltip.style.top = e.pageY + 10 + 'px';
+                            });
+                            
+                            element.addEventListener('mouseleave', () => {
+                                tooltip.style.opacity = '0';
+                            });
+                            
+                            element.addEventListener('mousemove', (e) => {
+                                if (tooltip.style.opacity === '1') {
+                                    tooltip.style.left = e.pageX + 10 + 'px';
+                                    tooltip.style.top = e.pageY + 10 + 'px';
+                                }
+                            });
                         }
-                        
-                        tooltip.textContent = tooltipText;
-                        tooltip.style.opacity = '1';
-                        tooltip.style.left = e.pageX + 10 + 'px';
-                        tooltip.style.top = e.pageY + 10 + 'px';
-                    });
-                    
-                    card.addEventListener('mouseleave', () => {
-                        tooltip.style.opacity = '0';
-                    });
-                    
-                    card.addEventListener('mousemove', (e) => {
-                        tooltip.style.left = e.pageX + 10 + 'px';
-                        tooltip.style.top = e.pageY + 10 + 'px';
                     });
                 });
             }
             
             startDataUpdates() {
-                // Simulate ⧖-preserving updates every 30 seconds
-                setInterval(() => this.updatePhaseCoherentData(), 30000);
+                // Update metrics every 30 seconds
+                setInterval(() => this.updateMetrics(), 30000);
                 
-                // Update render timestamp every second
-                setInterval(() => {
-                    document.getElementById('render-time').textContent = 
-                        new Date().toLocaleString('en-US', { 
-                            timeZone: 'UTC',
-                            year: 'numeric',
-                            month: 'long', 
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        }) + ' UTC';
-                }, 1000);
+                // Update timestamps every second
+                setInterval(() => this.updateRenderTimestamp(), 1000);
+                
+                // Initial update
+                this.updateMetrics();
             }
             
-            updatePhaseCoherentData() {
-                // Simulate realistic phase-coherent updates
-                const strainVariation = (Math.random() - 0.5) * 0.001;
-                
-                // Update semi-axes with small coherent changes
-                this.semiAxes.a += strainVariation;
-                this.semiAxes.b += strainVariation * 0.8;
-                this.semiAxes.c += strainVariation * 0.6;
-                
-                // Update bias vector
-                this.biasVector.x += (Math.random() - 0.5) * 0.01;
-                this.biasVector.y += (Math.random() - 0.5) * 0.005;
-                this.biasVector.angle += (Math.random() - 0.5) * 0.5;
-                
-                // Update UI
-                this.updateUI();
+            updateMetrics() {
+                try {
+                    // Simulate realistic phase-coherent updates
+                    const strainVariation = (Math.random() - 0.5) * 0.001;
+                    
+                    // Update semi-axes
+                    this.data.semiAxes.a += strainVariation;
+                    this.data.semiAxes.b += strainVariation * 0.8;
+                    this.data.semiAxes.c += strainVariation * 0.6;
+                    
+                    // Update bias vector
+                    this.data.biasVector.x += (Math.random() - 0.5) * 0.01;
+                    this.data.biasVector.y += (Math.random() - 0.5) * 0.005;
+                    this.data.biasVector.angle += (Math.random() - 0.5) * 0.5;
+                    
+                    // Update FCI and ITCI
+                    this.data.fci += (Math.random() - 0.5) * 0.02;
+                    this.data.itci += (Math.random() - 0.5) * 0.05;
+                    
+                    // Update memory rings
+                    this.data.memoryRings = this.data.memoryRings.map(val => 
+                        Math.max(0, Math.min(1, val + (Math.random() - 0.5) * 0.01))
+                    );
+                    
+                    this.updateUI();
+                    this.updateDataTimestamp();
+                    
+                } catch (error) {
+                    console.warn('Metrics update error:', error);
+                }
             }
             
             updateUI() {
-                // Update bias arrow rotation
-                const biasArrow = document.getElementById('bias-arrow');
-                biasArrow.style.transform = `translate(-50%, -50%) rotate(${this.biasVector.angle}deg)`;
-                
-                // Update magnitude
-                const magnitude = Math.sqrt(this.biasVector.x ** 2 + this.biasVector.y ** 2);
-                document.getElementById('bias-magnitude').textContent = magnitude.toFixed(3);
-                document.getElementById('bias-direction').textContent = 
-                    `Direction: ${this.biasVector.angle.toFixed(1)}° | Rightward lean confirmed`;
-                
-                // Update semi-axes with deviations
-                const semiAxesCard = document.querySelector('.semi-axes-card');
-                const axisRows = semiAxesCard.querySelectorAll('.axis-row');
-                
+                try {
+                    // Update FCI and ITCI values
+                    const fciElement = document.getElementById('fci-value');
+                    const itciElement = document.getElementById('itci-value');
+                    
+                    if (fciElement) fciElement.textContent = this.data.fci.toFixed(2);
+                    if (itciElement) itciElement.textContent = this.data.itci.toFixed(2);
+                    
+                    // Update bias vector
+                    const biasArrow = document.getElementById('bias-arrow');
+                    const biasMagnitude = document.getElementById('bias-magnitude');
+                    const biasDirection = document.getElementById('bias-direction');
+                    
+                    if (biasArrow) {
+                        biasArrow.style.transform = `translate(-50%, -50%) rotate(${this.data.biasVector.angle}deg)`;
+                    }
+                    
+                    const magnitude = Math.sqrt(this.data.biasVector.x ** 2 + this.data.biasVector.y ** 2);
+                    if (biasMagnitude) biasMagnitude.textContent = magnitude.toFixed(3);
+                    if (biasDirection) {
+                        biasDirection.textContent = `Direction: ${this.data.biasVector.angle.toFixed(1)}° | Rightward lean confirmed`;
+                    }
+                    
+                    // Update memory rings
+                    const rings = document.querySelectorAll('.coherence-fill');
+                    rings.forEach((ring, i) => {
+                        if (this.data.memoryRings[i] !== undefined) {
+                            const value = this.data.memoryRings[i];
+                            const percentage = Math.round(value * 100);
+                            ring.style.width = percentage + '%';
+                            ring.setAttribute('data-value', value.toFixed(2));
+                            
+                            const valueElement = ring.querySelector('.coherence-value');
+                            if (valueElement) valueElement.textContent = value.toFixed(2);
+                        }
+                    });
+                    
+                    // Update semi-axes
+                    this.updateSemiAxesDisplay();
+                    
+                } catch (error) {
+                    console.warn('UI update error:', error);
+                }
+            }
+            
+            updateSemiAxesDisplay() {
                 const baselines = [1.050, 0.982, 0.948];
-                const current = [this.semiAxes.a, this.semiAxes.b, this.semiAxes.c];
+                const current = [this.data.semiAxes.a, this.data.semiAxes.b, this.data.semiAxes.c];
                 const labels = ['a', 'b', 'c'];
                 
-                axisRows.forEach((row, i) => {
-                    const deviation = current[i] - baselines[i];
-                    const sign = deviation >= 0 ? '+' : '';
-                    
-                    row.innerHTML = `
-                        <span>${labels[i]}(t): <span style="color: #ffd700;">${current[i].toFixed(4)}</span></span>
-                        <span class="axis-baseline">baseline: ${baselines[i]}</span>
-                        <span class="deviation">${sign}${deviation.toFixed(4)}</span>
-                    `;
+                document.querySelectorAll('[data-axis]').forEach((row, i) => {
+                    if (current[i] !== undefined) {
+                        const deviation = current[i] - baselines[i];
+                        const sign = deviation >= 0 ? '+' : '';
+                        
+                        row.innerHTML = `
+                            <span>${labels[i]}(t): <span style="color: #ffd700;">${current[i].toFixed(4)}</span></span>
+                            <span class="axis-baseline">baseline: ${baselines[i]}</span>
+                            <span class="deviation">${sign}${deviation.toFixed(4)}</span>
+                        `;
+                    }
                 });
+            }
+            
+            updateRenderTimestamp() {
+                const renderElement = document.getElementById('render-time');
+                if (renderElement) {
+                    renderElement.textContent = new Date().toLocaleString('en-US', { 
+                        timeZone: 'UTC',
+                        year: 'numeric',
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) + ' UTC';
+                }
+            }
+            
+            updateDataTimestamp() {
+                const updateElement = document.getElementById('last-update');
+                if (updateElement) {
+                    updateElement.textContent = new Date().toLocaleString('en-US', { 
+                        timeZone: 'UTC',
+                        year: 'numeric',
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) + ' UTC';
+                }
+            }
+            
+            destroy() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+                // Clean up event listeners if needed
             }
         }
         
-        // Initialize when page loads
+        // Add CSS animation for ripple effect
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            window.squishyEarth = new SquishyEarthMap();
-            console.log('🌍 Enhanced Squishy Earth Monitor Initialized');
-            console.log('⧖ Dynamic map projection with phase-coherent deformation');
+            try {
+                window.squishyEarth = new SquishyEarthMap();
+            } catch (error) {
+                console.error('Failed to initialize Squishy Earth Monitor:', error);
+                
+                // Display error message to user
+                const errorDiv = document.createElement('div');
+                errorDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff6b35;">
+                        <h3>⚠ Initialization Error</h3>
+                        <p>Unable to start phase-coherent monitoring. Please refresh the page.</p>
+                    </div>
+                `;
+                document.querySelector('.earth-viz').appendChild(errorDiv);
+            }
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (window.squishyEarth) {
+                window.squishyEarth.destroy();
+            }
         });
     </script>
 </body>
