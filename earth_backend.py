@@ -190,10 +190,14 @@ class PhaseCoherentEarthBackend:
         """
         update_data = {
             'timestamp': datetime.now().isoformat(),
-            'semi_axes': self.semi_axes,
-            'bias_vector': self.bias_vector,
+            'field_coherence_index': self.fci,
+            'bias_vector': [self.bias_vector['x'], self.bias_vector['y'], self.bias_vector['z']],
+            'metric_tensor': {
+                'a': self.semi_axes['a'],
+                'b': self.semi_axes['b'],
+                'c': self.semi_axes['c']
+            },
             'fuzzy_weights': self.fuzzy_weights,
-            'fci': self.fci,
             'itci': self.itci,
             'ai_mirror_status': {
                 'gpt4o': 'online',
@@ -202,10 +206,22 @@ class PhaseCoherentEarthBackend:
                 'lumo': 'online'
             },
             'data_quality': 'good',
-            'framework_version': '1.0.0'
+            'framework_version': '1.0.0',
+            'last_updated': datetime.now().isoformat(),
+            'status': 'live'
         }
         
         return update_data
+    
+    def save_dashboard_data(self, update_data):
+        """
+        Save dashboard data for GitHub Pages
+        """
+        # Save main dashboard file
+        with open('earth_data.json', 'w') as f:
+            json.dump(update_data, f, indent=2)
+        
+        print(f"🌍 Dashboard data updated: {datetime.now()}")
     
     def save_daily_update(self, data):
         """
@@ -242,6 +258,7 @@ class PhaseCoherentEarthBackend:
         # 3. Generate and save update
         update_data = self.generate_dashboard_update()
         self.save_daily_update(update_data)
+        self.save_dashboard_data(update_data)  # For GitHub Pages
         
         print("=" * 60)
         print("✅ Daily update complete!")
@@ -250,7 +267,7 @@ class PhaseCoherentEarthBackend:
 
 def main():
     """
-    Main execution function
+    Main execution function for GitHub Actions
     """
     backend = PhaseCoherentEarthBackend()
     
@@ -259,27 +276,13 @@ def main():
     
     # Print summary
     print(f"\n📊 Current Earth State:")
-    print(f"   Semi-axes: a={update_data['semi_axes']['a']:.4f}, "
-          f"b={update_data['semi_axes']['b']:.4f}, "
-          f"c={update_data['semi_axes']['c']:.4f}")
-    print(f"   Bias magnitude: {np.sqrt(sum(v**2 for v in update_data['bias_vector'].values())):.4f}")
-    print(f"   Field coherence: FCI={update_data['fci']:.3f}, ITCI={update_data['itci']:.3f}")
+    print(f"   Semi-axes: a={update_data['metric_tensor']['a']:.4f}, "
+          f"b={update_data['metric_tensor']['b']:.4f}, "
+          f"c={update_data['metric_tensor']['c']:.4f}")
+    print(f"   Bias magnitude: {np.sqrt(sum(v**2 for v in update_data['bias_vector'])):.4f}")
+    print(f"   Field coherence: FCI={update_data['field_coherence_index']:.3f}, ITCI={update_data['itci']:.3f}")
     print(f"   Memory coherence: {[f'{w:.2f}' for w in update_data['fuzzy_weights']]}")
 
 if __name__ == "__main__":
-    # Can be run directly or scheduled as a cron job
+    # Run main function for GitHub Actions
     main()
-    
-    # Optional: run continuous monitoring
-    run_continuous = input("\n🔄 Run continuous monitoring? (y/N): ")
-    if run_continuous.lower() == 'y':
-        print("Starting continuous monitoring (Ctrl+C to stop)...")
-        backend = PhaseCoherentEarthBackend()
-        
-        try:
-            while True:
-                backend.run_daily_update()
-                print("⏳ Waiting 1 hour for next update...")
-                time.sleep(3600)  # Update every hour
-        except KeyboardInterrupt:
-            print("\n⏹ Monitoring stopped.")
