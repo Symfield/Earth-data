@@ -3,7 +3,10 @@ on:
   schedule:
     - cron: '0 */6 * * *'  # Every 6 hours at top of hour
   workflow_dispatch:  # Manual trigger button in GitHub Actions tab
-  
+
+permissions:
+  contents: write  # Add this line here
+
 jobs:
   update:
     runs-on: ubuntu-latest
