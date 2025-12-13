@@ -1,47 +1,49 @@
-name: Update Earth Data
+name: Auto-update Earth phase-coherent data
+
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours at top of hour
-  workflow_dispatch:  # Manual trigger button in GitHub Actions tab
-
-permissions:
-  contents: write  # Add this line here
+    # Run daily at 6:00 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
-  update:
+  update-earth-data:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Fetch full history
     
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        pip install numpy pandas requests scipy datetime
-        
-    - name: Run Earth backend calculations
-      run: python earth_backend.py
+    permissions:
+      contents: write
+    
+    env:
+      # These come from GitHub Secrets (you'll add these)
+      EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+      EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       
-    - name: Commit updated Earth data
-      run: |
-        git config --local user.email "earth-bot@symfield.ai"
-        git config --local user.name "Earth Data Bot"
-        git add -A
-        if ! git diff --staged --quiet; then
-          git commit -m "🌍 Auto-update Earth phase-coherent data $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
-          echo "Earth data updated successfully!"
-        else
-          echo "No changes to commit"
-        fi
-
-    - name: Update workflow status
-      if: failure()
-      run: |
-        echo "❌ Earth data update failed at $(date -u)"
-        echo "Check logs and data sources"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests numpy earthaccess xarray netCDF4 h5netcdf
+      
+      - name: Run Earth data update (IERS + GRACE-FO)
+        run: |
+          python earth_backend.py
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add earth_data.json earth_data_*.json latest.json 2>/dev/null || true
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🌍 Auto-update Earth data $(date -u +%Y-%m-%d) [IERS+GRACE-FO]"
+            git push
+          fi
