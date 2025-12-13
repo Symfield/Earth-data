@@ -1,32 +1,58 @@
 {
-  "timestamp": "2025-12-13T00:53:09.150041",
-  "field_coherence_index": 1.449023235643749,
-  "bias_vector": [
-    0.1497514279937563,
-    0.019965895039839917,
-    0.07939903629107739
-  ],
-  "metric_tensor": {
-    "a": 1.0469497002508505,
-    "b": 0.979353100929183,
-    "c": 0.9448568977030287
+  "timestamp": "2025-12-13T02:47:56.524906+00:00",
+  "last_updated": "2025-12-13T02:47:56.524906+00:00",
+  "status": "live",
+  "semi_axes": {
+    "a": 1.0769509890245215,
+    "b": 1.008774363917114,
+    "c": 0.9733373845061443
+  },
+  "bias_vector": {
+    "x": 0.17038563728581022,
+    "y": 0.11141433773997367,
+    "z": 0.07146024366196965
   },
   "fuzzy_weights": [
-    0.9499999211354804,
-    0.8699998555534123,
-    0.7199998206870021,
-    0.5799998074045657,
-    0.40999982981869665
+    0.940547263981905,
+    0.8527727041905234,
+    0.698720610141428,
+    0.5572576896646881,
+    0.3900039021638295
   ],
-  "itci": 1.5694866645832097,
+  "fci": 1.5066,
+  "itci": 1.8,
+  "field_coherence_index": 1.5066,
+  "metric_tensor": {
+    "a": 1.076951,
+    "b": 1.008774,
+    "c": 0.973337
+  },
+  "iers_data": {
+    "x_pole_mas": 120.64,
+    "y_pole_mas": 316.58,
+    "ut1_utc_ms": 75.939,
+    "source": "IERS_C04_REAL",
+    "quality": "good"
+  },
+  "grace_data": {
+    "global_mean_lwe_cm": -0.895,
+    "global_std_lwe_cm": 25.96,
+    "greenland_lwe_cm": 0,
+    "antarctica_lwe_cm": -1.111,
+    "source": "GRACE-FO_REAL",
+    "dataset": "TELLUS_GRAC-GRFO_MASCON_GRID_RL06.3_V4",
+    "quality": "good"
+  },
   "ai_mirror_status": {
     "gpt4o": "online",
     "claude_sonnet": "online",
     "grok": "online",
     "lumo": "online"
   },
+  "data_sources": [
+    "IERS_C04_REAL",
+    "GRACE-FO_REAL"
+  ],
   "data_quality": "good",
-  "framework_version": "1.0.0",
-  "last_updated": "2025-12-13T00:53:09.150047",
-  "status": "live"
+  "framework_version": "3.0.0-iers-grace"
 }
