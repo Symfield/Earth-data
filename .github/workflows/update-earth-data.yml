@@ -1,49 +1,84 @@
 name: Auto-update Earth phase-coherent data
 
+# ────────────────────────────────────────────────────────────────
+# Triggers
+# ────────────────────────────────────────────────────────────────
 on:
+  # Run automatically every day at 06:00 UTC
   schedule:
-    # Run daily at 6:00 AM UTC
     - cron: '0 6 * * *'
-  workflow_dispatch:  # Allows manual trigger
+  # Allow a manual run from the Actions UI
+  workflow_dispatch:
 
+# ────────────────────────────────────────────────────────────────
+# Jobs
+# ────────────────────────────────────────────────────────────────
 jobs:
   update-earth-data:
     runs-on: ubuntu-latest
-    
+
+    # Needed so the job can push a commit back to the repo
     permissions:
       contents: write
-    
+
+    # Pass the Earthdata credentials from repository secrets
     env:
-      # These come from GitHub Secrets (you'll add these)
       EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
       EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
-    
+
     steps:
+      # -----------------------------------------------------------------
+      # 1️⃣ Checkout the repo (so we have the code and can commit later)
+      # -----------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
+      # -----------------------------------------------------------------
+      # 2️⃣ Set up Python 3.11
+      # -----------------------------------------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+
+      # -----------------------------------------------------------------
+      # 3️⃣ Install the Python dependencies
+      # -----------------------------------------------------------------
       - name: Install dependencies
         run: |
-          pip install requests numpy earthaccess xarray netCDF4 h5netcdf
-      
-      - name: Run Earth data update (IERS + GRACE-FO)
+          pip install --quiet \
+            requests \
+            numpy \
+            earthaccess \
+            xarray \
+            netcdf4 \
+            h5netcdf
+
+      # -----------------------------------------------------------------
+      # 4️⃣ Run the backend script (this creates/updates the JSON files)
+      # -----------------------------------------------------------------
+      - name: Run Earth data update (IERS + GRACE‑FO)
         run: |
           python earth_backend.py
-      
+
+      # -----------------------------------------------------------------
+      # 5️⃣ Commit the newly‑generated JSON files back to the repo
+      # -----------------------------------------------------------------
       - name: Commit and push changes
         run: |
+          # Configure a generic GitHub‑Action identity
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+
+          # Stage the JSON files (ignore errors if they don't exist)
           git add earth_data.json earth_data_*.json latest.json 2>/dev/null || true
-          
+
+          # If nothing changed, exit early
           if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "🌍 Auto-update Earth data $(date -u +%Y-%m-%d) [IERS+GRACE-FO]"
-            git push
+            echo "✅ No changes to commit"
+            exit 0
           fi
+
+          # Otherwise, commit and push
+          git commit -m "🌍 Auto‑update Earth data $(date -u +%Y-%m-%d) [IERS+GRACE‑FO]"
+          git push
