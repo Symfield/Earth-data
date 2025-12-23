@@ -5,880 +5,1014 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phase-Coherent Earth Monitor | Enhanced Dashboard</title>
     
-    <!-- Three.js for 3D visualization -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+   <!-- Three.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<style>
+    /* Scoped styles - won't affect parent page */
+    .pcm-dashboard * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .pcm-dashboard {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #0a0a12 0%, #0d1b2a 50%, #1b263b 100%);
+        color: #ffffff;
+        min-height: 100vh;
+        padding: 20px 0 0 0;
+    }
+
+    .pcm-header {
+        text-align: center;
+        padding: 25px 20px;
+        background: rgba(0, 20, 40, 0.5);
+        border-bottom: 1px solid rgba(100, 200, 255, 0.1);
+        margin: 0 20px 20px 20px;
+        border-radius: 15px;
+    }
+
+    .pcm-header h1 {
+        font-size: 2.5rem;
+        background: linear-gradient(45deg, #4ecdc4, #44a8b3, #a8e6cf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+    }
+
+    .pcm-header p {
+        font-size: 1.1rem;
+        opacity: 0.8;
+        max-width: 900px;
+        margin: 0 auto;
+        color: #a8d5e5;
+    }
+
+    .pcm-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 25px;
+    }
+
+    .pcm-earth-viz {
+        background: rgba(0, 20, 40, 0.4);
+        border-radius: 20px;
+        border: 1px solid rgba(100, 200, 255, 0.15);
+        min-height: 600px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pcm-earth-viz canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .pcm-controls {
+        background: rgba(0, 20, 40, 0.4);
+        border-radius: 20px;
+        border: 1px solid rgba(100, 200, 255, 0.15);
+        padding: 30px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .pcm-card {
+        background: rgba(78, 205, 196, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 15px;
+        border-left: 4px solid #4ecdc4;
+        cursor: help;
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 1;
+    }
+
+    .pcm-card:hover {
+        background: rgba(78, 205, 196, 0.15);
+        transform: translateX(3px);
+        z-index: 200;
+    }
+
+    .pcm-card:hover .pcm-tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .pcm-label {
+        font-size: 0.85rem;
+        color: #a8d5e5;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .pcm-value {
+        font-size: 1.6rem;
+        font-weight: bold;
+        color: #4ecdc4;
+    }
+
+    .pcm-info {
+        font-size: 0.8rem;
+        color: #6b9dad;
+        margin-top: 6px;
+    }
+
+    .pcm-tooltip {
+        position: absolute;
+        top: calc(100% + 10px);
+        left: 0;
+        right: 0;
+        background: rgba(0, 20, 40, 0.95);
+        color: #a8d5e5;
+        padding: 12px 14px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        border: 1px solid rgba(78, 205, 196, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease;
+        z-index: 100;
+        pointer-events: none;
+    }
+
+    .pcm-bias {
+        background: rgba(78, 205, 196, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 15px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .pcm-bias:hover {
+        z-index: 200;
+    }
+
+    .pcm-bias:hover .pcm-tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .pcm-bias-visual {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .pcm-compass {
+        width: 90px;
+        height: 90px;
+        border: 2px solid rgba(78, 205, 196, 0.4);
+        border-radius: 50%;
+        position: relative;
+        background: rgba(0, 30, 50, 0.5);
+    }
+
+    .pcm-arrow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 35px;
+        height: 3px;
+        background: linear-gradient(90deg, #4ecdc4, #a8e6cf);
+        transform-origin: left center;
+        transform: translate(-50%, -50%) rotate(33deg);
+        box-shadow: 0 0 15px rgba(78, 205, 196, 0.6);
+        border-radius: 2px;
+        transition: transform 0.5s ease;
+    }
+
+    .pcm-arrow::after {
+        content: '';
+        position: absolute;
+        right: -6px;
+        top: -4px;
+        width: 0;
+        height: 0;
+        border-left: 10px solid #a8e6cf;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+    }
+
+    .pcm-compass-label {
+        position: absolute;
+        font-size: 0.6rem;
+        color: #6b9dad;
+    }
+
+    .pcm-compass-n { top: 5px; left: 50%; transform: translateX(-50%); }
+    .pcm-compass-s { bottom: 5px; left: 50%; transform: translateX(-50%); }
+    .pcm-compass-e { right: 5px; top: 50%; transform: translateY(-50%); }
+    .pcm-compass-w { left: 5px; top: 50%; transform: translateY(-50%); }
+
+    .pcm-rings {
+        background: rgba(78, 205, 196, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 15px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .pcm-rings:hover {
+        z-index: 200;
+    }
+
+    .pcm-rings:hover .pcm-tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .pcm-ring {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(78, 205, 196, 0.1);
+    }
+
+    .pcm-ring:last-child {
+        border-bottom: none;
+    }
+
+    .pcm-ring-label {
+        font-size: 0.85rem;
+        color: #a8d5e5;
+        min-width: 100px;
+    }
+
+    .pcm-ring-bar {
+        flex: 1;
+        height: 10px;
+        background: rgba(0, 30, 50, 0.5);
+        border-radius: 5px;
+        overflow: hidden;
+        margin: 0 12px;
+    }
+
+    .pcm-ring-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4ecdc4, #44a8b3, #a8e6cf);
+        border-radius: 5px;
+        transition: width 0.5s ease;
+    }
+
+    .pcm-ring-val {
+        font-size: 0.85rem;
+        color: #4ecdc4;
+        min-width: 45px;
+        text-align: right;
+        font-weight: 600;
+    }
+
+    .pcm-ai-status {
+        background: rgba(78, 205, 196, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 15px;
+    }
+
+    .pcm-ai-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+    }
+
+    .pcm-ai-name {
+        color: #a8d5e5;
+        font-size: 0.9rem;
+    }
+
+    .pcm-ai-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4ecdc4;
+        box-shadow: 0 0 10px rgba(78, 205, 196, 0.6);
+    }
+
+    .pcm-axes {
+        background: rgba(78, 205, 196, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 15px;
+    }
+
+    .pcm-axis-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 10px;
+        align-items: center;
+        padding: 6px 0;
+        font-size: 0.9rem;
+    }
+
+    .pcm-axis-val {
+        color: #4ecdc4;
+        font-weight: 600;
+    }
+
+    .pcm-axis-base {
+        font-size: 0.75rem;
+        color: #6b9dad;
+    }
+
+    .pcm-deviation {
+        font-size: 0.8rem;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .pcm-deviation.positive {
+        background: rgba(78, 205, 196, 0.2);
+        color: #4ecdc4;
+    }
+
+    .pcm-deviation.negative {
+        background: rgba(168, 230, 207, 0.2);
+        color: #a8e6cf;
+    }
+
+    .pcm-sources {
+        background: rgba(78, 205, 196, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 15px;
+        border-left: 4px solid #4ecdc4;
+    }
+
+    .pcm-source-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 0;
+    }
+
+    .pcm-source-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        background: rgba(78, 205, 196, 0.3);
+        color: #4ecdc4;
+    }
+
+    .pcm-raw {
+        font-size: 0.75rem;
+        color: #6b9dad;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(78, 205, 196, 0.1);
+    }
+
+    .pcm-footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 0.85rem;
+        color: #6b9dad;
+        background: rgba(0, 20, 40, 0.3);
+        border-top: 1px solid rgba(100, 200, 255, 0.1);
+    }
+
+    .pcm-badge {
+        position: absolute;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        z-index: 10;
+        background: rgba(78, 205, 196, 0.9);
+        color: #001020;
+    }
+
+    .pcm-badge-data {
+        top: 20px;
+        left: 20px;
+    }
+
+    .pcm-badge-live {
+        top: 20px;
+        right: 20px;
+    }
+
+    .pcm-shape-info {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 20, 40, 0.8);
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        color: #a8d5e5;
+        z-index: 10;
+        border: 1px solid rgba(78, 205, 196, 0.2);
+    }
+
+    .pcm-shape-info .label {
+        color: #6b9dad;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .pcm-shape-info .values {
+        color: #4ecdc4;
+        font-weight: 600;
+    }
+
+    @media (max-width: 1024px) {
+        .pcm-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .pcm-header h1 {
+            font-size: 1.8rem;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%);
-            color: #ffffff;
-            overflow-x: hidden;
+        .pcm-earth-viz {
+            min-height: 400px;
         }
 
-        .header {
-            text-align: center;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
+        .pcm-controls {
+            max-height: none;
         }
+    }
+</style>
 
-        .header h1 {
-            font-size: 2.5rem;
-            background: linear-gradient(45deg, #ff6b35, #f7931e, #ffd700);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.8;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .dashboard-container {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 20px;
-            padding: 20px;
-            min-height: calc(100vh - 120px);
-        }
-
-        .earth-viz {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .map-container {
-            flex: 1;
-            position: relative;
-            background: radial-gradient(ellipse at center, #001122 0%, #000000 100%);
-        }
-
-        .squishy-map {
-            width: 100%;
-            height: 100%;
-            background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZWFydGhHcmFkaWVudCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTNhOGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMzAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjUwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI3MCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYWIzMDg7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2YzZjRmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxlbGxpcHNlIGN4PSI0MDAiIGN5PSIyMDAiIHJ4PSIzODAiIHJ5PSIxODAiIGZpbGw9InVybCgjZWFydGhHcmFkaWVudCkiIG9wYWNpdHk9IjAuOCIgLz4KPC9zdmc+') center/contain no-repeat;
-            transition: all 0.3s ease;
-            transform-origin: center;
-        }
-
-        .deformation-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-        }
-
-        .controls-panel {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            overflow-y: auto;
-        }
-
-        .metric-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 4px solid #ff6b35;
-            position: relative;
-        }
-
-        .metric-label {
-            font-size: 0.9rem;
-            opacity: 0.7;
-            margin-bottom: 5px;
-        }
-
-        .metric-value {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #ffd700;
-        }
-
-        .metric-info {
-            font-size: 0.8rem;
-            opacity: 0.6;
-            margin-top: 5px;
-            cursor: help;
-        }
-
-        .bias-indicator {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .bias-visual {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .bias-compass {
-            width: 80px;
-            height: 80px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            position: relative;
-            margin-left: 20px;
-        }
-
-        .bias-arrow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 30px;
-            height: 2px;
-            background: #ff6b35;
-            transform-origin: left center;
-            transform: translate(-50%, -50%) rotate(2.3deg);
-            box-shadow: 0 0 10px #ff6b35;
-        }
-
-        .bias-arrow::after {
-            content: '';
-            position: absolute;
-            right: -5px;
-            top: -3px;
-            width: 0;
-            height: 0;
-            border-left: 8px solid #ff6b35;
-            border-top: 4px solid transparent;
-            border-bottom: 4px solid transparent;
-        }
-
-        .memory-rings {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .ring {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .ring:last-child {
-            border-bottom: none;
-        }
-
-        .ring-coherence {
-            width: 100px;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .coherence-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff6b35, #ffd700, #32cd32);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            position: relative;
-        }
-
-        .coherence-value {
-            font-size: 0.7rem;
-            color: #fff;
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .ai-mirror-status {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .ai-status {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-        }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #32cd32;
-            box-shadow: 0 0 10px #32cd32;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .semi-axes-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .axis-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px 0;
-        }
-
-        .axis-baseline {
-            font-size: 0.8rem;
-            opacity: 0.5;
-        }
-
-        .deviation {
-            font-size: 0.9rem;
-            padding: 2px 8px;
-            border-radius: 12px;
-            background: rgba(255, 107, 53, 0.2);
-            color: #ffd700;
-        }
-
-        .update-info {
-            text-align: center;
-            padding: 20px;
-            font-size: 0.9rem;
-            opacity: 0.6;
-        }
-
-        .phase-coherent-badge {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 107, 53, 0.9);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            backdrop-filter: blur(10px);
-        }
-
-        .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 1000;
-            max-width: 200px;
-        }
-
-        @media (max-width: 1024px) {
-            .dashboard-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-        }
-
-        .status-online {
-            background: #32cd32;
-            box-shadow: 0 0 10px #32cd32;
-        }
-
-        .status-warning {
-            background: #ffd700;
-            box-shadow: 0 0 10px #ffd700;
-        }
-
-        .status-offline {
-            background: #ff4444;
-            box-shadow: 0 0 10px #ff4444;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
+<div class="pcm-dashboard">
+    <div class="pcm-header">
         <h1>Phase-Coherent Earth Monitor</h1>
-        <p>Dynamic map visualization of Earth's breathing geometry using non-collapse field mathematics. 
-           Watch the planet deform in real-time as a living, squishy interface.</p>
+        <p>Live visualization of Earth's true triaxial shape using non-collapse field mathematics. 
+           Watch the planet breathe and deform based on real IERS polar motion and GRACE-FO satellite data.</p>
     </div>
 
-    <div class="dashboard-container">
-        <div class="earth-viz">
-            <div class="phase-coherent-badge">⧖ LIVE FIELD</div>
-            <div class="map-container">
-                <div class="squishy-map" id="squishy-map"></div>
-                <canvas class="deformation-overlay" id="deformation-canvas"></canvas>
+    <div class="pcm-container">
+        <div class="pcm-earth-viz">
+            <div class="pcm-badge pcm-badge-data" id="data-badge">🛰️ LIVE DATA</div>
+            <div class="pcm-badge pcm-badge-live">⧖ LIVE FIELD</div>
+            <canvas id="earth-canvas"></canvas>
+            <div class="pcm-shape-info">
+                <div class="label">Current Triaxial Shape</div>
+                <div class="values" id="shape-values">a: 1.077 | b: 1.009 | c: 0.973</div>
             </div>
         </div>
 
-        <div class="controls-panel">
-            <div class="metric-card">
-                <div class="metric-label">Field Coherence Index (FCI)</div>
-                <div class="metric-value" id="fci-value">1.96</div>
-                <div class="metric-info">Healthy field: >1.5 | Current: Stable</div>
+        <div class="pcm-controls">
+            <div class="pcm-card">
+                <div class="pcm-tooltip">Field Coherence Index measures how well Earth's field maintains phase alignment without collapse. Values above 1.5 indicate stable, healthy field dynamics. Computed from the variance of temporal memory weights.</div>
+                <div class="pcm-label">Field Coherence Index (FCI)</div>
+                <div class="pcm-value" id="fci-value">1.5066</div>
+                <div class="pcm-info">Healthy: &gt;1.5 | Status: <span id="fci-status">Stable</span></div>
             </div>
 
-            <div class="metric-card">
-                <div class="metric-label">Information-Theoretic Coherence (ITCI)</div>
-                <div class="metric-value" id="itci-value">2.31</div>
-                <div class="metric-info">Entropy diversity | Higher = Better</div>
+            <div class="pcm-card">
+                <div class="pcm-tooltip">Information-Theoretic Coherence Index uses Shannon entropy to measure how well the system preserves uncertainty. Higher values indicate better non-collapse behavior—the field maintains information richness rather than collapsing to point estimates.</div>
+                <div class="pcm-label">Information-Theoretic Coherence (ITCI)</div>
+                <div class="pcm-value" id="itci-value">1.8000</div>
+                <div class="pcm-info">Entropy measure | Higher = better preservation</div>
             </div>
 
-            <div class="bias-indicator">
-                <div class="metric-label">Current Bias Vector</div>
-                <div class="bias-visual">
+            <div class="pcm-bias">
+                <div class="pcm-tooltip">The bias vector shows Earth's preferential directional tendency, derived from real IERS polar motion measurements. The arrow indicates which direction Earth is currently 'leaning' based on accumulated strain patterns from satellite observations.</div>
+                <div class="pcm-label">Current Bias Vector</div>
+                <div class="pcm-bias-visual">
                     <div>
-                        <div style="color: #ffd700; font-size: 1.2rem;" id="bias-magnitude">0.15</div>
-                        <div style="font-size: 0.9rem; opacity: 0.7;">Magnitude</div>
+                        <div style="font-size: 1.4rem; color: #4ecdc4; font-weight: 600;" id="bias-magnitude">0.2142</div>
+                        <div style="font-size: 0.85rem; color: #6b9dad; margin-top: 4px;" id="bias-direction">33.2° N-E lean</div>
                     </div>
-                    <div class="bias-compass">
-                        <div class="bias-arrow" id="bias-arrow"></div>
-                    </div>
-                </div>
-                <div style="text-align: center; font-size: 0.9rem; opacity: 0.7;" id="bias-direction">
-                    Direction: +2.3° | Rightward lean confirmed
-                </div>
-            </div>
-
-            <div class="memory-rings">
-                <div class="metric-label">Memory Rings (Temporal Coherence μ)</div>
-                <div class="ring">
-                    <span>Current (μ₀)</span>
-                    <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 95%" data-value="0.95">
-                            <div class="coherence-value">0.95</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="ring">
-                    <span>-30 days (μ₁)</span>
-                    <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 87%" data-value="0.87">
-                            <div class="coherence-value">0.87</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="ring">
-                    <span>-60 days (μ₂)</span>
-                    <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 72%" data-value="0.72">
-                            <div class="coherence-value">0.72</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="ring">
-                    <span>-90 days (μ₃)</span>
-                    <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 58%" data-value="0.58">
-                            <div class="coherence-value">0.58</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="ring">
-                    <span>-120 days (μ₄)</span>
-                    <div class="ring-coherence">
-                        <div class="coherence-fill" style="width: 41%" data-value="0.41">
-                            <div class="coherence-value">0.41</div>
-                        </div>
+                    <div class="pcm-compass">
+                        <span class="pcm-compass-label pcm-compass-n">N</span>
+                        <span class="pcm-compass-label pcm-compass-s">S</span>
+                        <span class="pcm-compass-label pcm-compass-e">E</span>
+                        <span class="pcm-compass-label pcm-compass-w">W</span>
+                        <div class="pcm-arrow" id="bias-arrow"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="ai-mirror-status">
-                <div class="metric-label">AI-Mirror Consensus (Stddev: 0.04)</div>
-                <div class="ai-status" data-ai="gpt">
-                    <span>GPT-4o</span>
-                    <div class="status-indicator status-online"></div>
+            <div class="pcm-rings">
+                <div class="pcm-tooltip">Temporal coherence tracking using fuzzy weights (μ). Each ring represents how field memory decays over time—showing graceful information degradation rather than sudden collapse. Based on ⧖-preserving mathematics from the Symfield framework.</div>
+                <div class="pcm-label">Memory Rings (Temporal Coherence μ)</div>
+                <div class="pcm-ring">
+                    <span class="pcm-ring-label">Current (μ₀)</span>
+                    <div class="pcm-ring-bar"><div class="pcm-ring-fill" id="ring-0" style="width: 94%"></div></div>
+                    <span class="pcm-ring-val" id="ring-val-0">0.94</span>
                 </div>
-                <div class="ai-status" data-ai="claude">
-                    <span>Claude Sonnet</span>
-                    <div class="status-indicator status-online"></div>
+                <div class="pcm-ring">
+                    <span class="pcm-ring-label">-30 days (μ₁)</span>
+                    <div class="pcm-ring-bar"><div class="pcm-ring-fill" id="ring-1" style="width: 85%"></div></div>
+                    <span class="pcm-ring-val" id="ring-val-1">0.85</span>
                 </div>
-                <div class="ai-status" data-ai="grok">
-                    <span>Grok</span>
-                    <div class="status-indicator status-online"></div>
+                <div class="pcm-ring">
+                    <span class="pcm-ring-label">-60 days (μ₂)</span>
+                    <div class="pcm-ring-bar"><div class="pcm-ring-fill" id="ring-2" style="width: 70%"></div></div>
+                    <span class="pcm-ring-val" id="ring-val-2">0.70</span>
                 </div>
-                <div class="ai-status" data-ai="lumo">
-                    <span>LuMO</span>
-                    <div class="status-indicator status-warning"></div>
+                <div class="pcm-ring">
+                    <span class="pcm-ring-label">-90 days (μ₃)</span>
+                    <div class="pcm-ring-bar"><div class="pcm-ring-fill" id="ring-3" style="width: 56%"></div></div>
+                    <span class="pcm-ring-val" id="ring-val-3">0.56</span>
+                </div>
+                <div class="pcm-ring">
+                    <span class="pcm-ring-label">-120 days (μ₄)</span>
+                    <div class="pcm-ring-bar"><div class="pcm-ring-fill" id="ring-4" style="width: 39%"></div></div>
+                    <span class="pcm-ring-val" id="ring-val-4">0.39</span>
                 </div>
             </div>
 
-            <div class="semi-axes-card">
-                <div class="metric-label">Current Semi-Axes vs Baseline</div>
-                <div class="axis-row" data-axis="a">
-                    <span>a(t): <span style="color: #ffd700;">1.0501</span></span>
-                    <span class="axis-baseline">baseline: 1.050</span>
-                    <span class="deviation">+0.0001</span>
+            <div class="pcm-ai-status">
+                <div class="pcm-label">AI-Mirror Consensus</div>
+                <div class="pcm-ai-row">
+                    <span class="pcm-ai-name">GPT-4o</span>
+                    <div class="pcm-ai-dot"></div>
                 </div>
-                <div class="axis-row" data-axis="b">
-                    <span>b(t): <span style="color: #ffd700;">0.9823</span></span>
-                    <span class="axis-baseline">baseline: 0.982</span>
-                    <span class="deviation">+0.0003</span>
+                <div class="pcm-ai-row">
+                    <span class="pcm-ai-name">Claude Sonnet</span>
+                    <div class="pcm-ai-dot"></div>
                 </div>
-                <div class="axis-row" data-axis="c">
-                    <span>c(t): <span style="color: #ffd700;">0.9477</span></span>
-                    <span class="axis-baseline">baseline: 0.948</span>
-                    <span class="deviation">-0.0003</span>
+                <div class="pcm-ai-row">
+                    <span class="pcm-ai-name">Grok</span>
+                    <div class="pcm-ai-dot"></div>
+                </div>
+            </div>
+
+            <div class="pcm-axes">
+                <div class="pcm-label">Triaxial Semi-Axes vs Baseline</div>
+                <div class="pcm-axis-row" id="axis-a">
+                    <span>a(t): <span class="pcm-axis-val">1.0770</span></span>
+                    <span class="pcm-axis-base">ref: 1.050</span>
+                    <span class="pcm-deviation positive">+0.0270</span>
+                </div>
+                <div class="pcm-axis-row" id="axis-b">
+                    <span>b(t): <span class="pcm-axis-val">1.0088</span></span>
+                    <span class="pcm-axis-base">ref: 0.982</span>
+                    <span class="pcm-deviation positive">+0.0268</span>
+                </div>
+                <div class="pcm-axis-row" id="axis-c">
+                    <span>c(t): <span class="pcm-axis-val">0.9733</span></span>
+                    <span class="pcm-axis-base">ref: 0.948</span>
+                    <span class="pcm-deviation positive">+0.0253</span>
+                </div>
+            </div>
+
+            <div class="pcm-sources">
+                <div class="pcm-label">📡 Live Satellite Data</div>
+                <div class="pcm-source-row">
+                    <span style="color: #a8d5e5;">IERS Polar Motion</span>
+                    <span class="pcm-source-badge" id="iers-badge">LIVE</span>
+                </div>
+                <div class="pcm-source-row">
+                    <span style="color: #a8d5e5;">GRACE-FO Gravity</span>
+                    <span class="pcm-source-badge" id="grace-badge">LIVE</span>
+                </div>
+                <div class="pcm-raw">
+                    <div id="raw-iers">Pole: x=120.64mas, y=316.58mas</div>
+                    <div id="raw-grace">Mass: -0.895cm water equiv.</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="update-info">
-        Last Data Update: <span id="last-update">November 9, 2025 14:30 UTC</span><br>
-        Dashboard Render: <span id="render-time">November 9, 2025 23:45 UTC</span><br>
-        Data Sources: GRACE-FO, IERS C04, MRRO-FCTI Network<br>
-        Framework: Symfield Phase-Coherent Mathematics
+    <div class="pcm-footer">
+        Last Data: <span id="last-update">Loading...</span> | 
+        Rendered: <span id="render-time">--</span> | 
+        Framework: Symfield v3.0 (⧖-Corrected)
     </div>
+</div>
 
-    <div class="tooltip" id="tooltip"></div>
+<script>
+// Global Earth state - initialized with real values
+const earthState = {
+    semiAxes: { a: 1.0770, b: 1.0088, c: 0.9733 },
+    biasVector: { x: 0.1704, y: 0.1114, z: 0.0715 },
+    fuzzyWeights: [0.9405, 0.8528, 0.6987, 0.5573, 0.3900],
+    fci: 1.5066,
+    itci: 1.8,
+    lastFetchTime: 0,
+    fuzzyWeightsBaseline: [0.9405, 0.8528, 0.6987, 0.5573, 0.3900]
+};
 
-    <script>
-        class SquishyEarthMap {
-            constructor() {
-                this.canvas = document.getElementById('deformation-canvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.squishyMap = document.getElementById('squishy-map');
+// ⧖-PRESERVING FUZZY WEIGHT EVOLUTION
+function evolveFuzzyWeights(deltaTime) {
+    const lambda0 = 0.008; // Base decay rate
+    const fci = earthState.fci;
+    
+    // Coherence stabilizes decay rate
+    const lambdaEff = lambda0 / Math.sqrt(fci);
+    
+    // Feedback from coherence state
+    const epsilon = 0.05 * (fci - 1.5);
+    
+    // Update each weight with temporal evolution
+    earthState.fuzzyWeights = earthState.fuzzyWeightsBaseline.map((mu0, i) => {
+        const decay = Math.exp(-lambdaEff * deltaTime * (i + 1));
+        const feedback = 1 + epsilon * Math.sin(deltaTime * 0.001 + i);
+        return Math.max(0, Math.min(1, mu0 * decay * feedback));
+    });
+}
+
+// Three.js Triaxial Earth
+class TriaxialEarth {
+    constructor() {
+        this.container = document.querySelector('.pcm-earth-viz');
+        this.canvas = document.getElementById('earth-canvas');
+        
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(50, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
+        
+        this.time = 0;
+        this.startTime = Date.now();
+        this.init();
+        this.animate();
+        this.setupInteractions();
+        this.fetchData();
+    }
+
+    init() {
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.camera.position.z = 4.5;
+
+        this.createEarth();
+        this.createMemoryRings();
+        this.createLighting();
+        this.createStarfield();
+
+        window.addEventListener('resize', () => this.onResize());
+    }
+
+    createEarth() {
+        const geometry = new THREE.SphereGeometry(1, 64, 48);
+        
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                axisA: { value: earthState.semiAxes.a },
+                axisB: { value: earthState.semiAxes.b },
+                axisC: { value: earthState.semiAxes.c },
+                biasX: { value: earthState.biasVector.x },
+                biasY: { value: earthState.biasVector.y },
+                fci: { value: earthState.fci }
+            },
+            vertexShader: `
+                uniform float time;
+                uniform float axisA;
+                uniform float axisB;
+                uniform float axisC;
+                uniform float biasX;
+                uniform float biasY;
+                uniform float fci;
                 
-                // Phase-coherent parameters with validation
-                this.data = {
-                    semiAxes: { a: 1.0501, b: 0.9823, c: 0.9477 },
-                    biasVector: { x: 0.15, y: 0.02, z: 0.08, angle: 2.3 },
-                    fci: 1.96,
-                    itci: 2.31,
-                    memoryRings: [0.95, 0.87, 0.72, 0.58, 0.41],
-                    aiStatus: {
-                        gpt: 'online',
-                        claude: 'online', 
-                        grok: 'online',
-                        lumo: 'warning'
-                    }
+                varying vec3 vPosition;
+                varying vec3 vNormal;
+                varying vec2 vUv;
+                
+                void main() {
+                    vUv = uv;
+                    vNormal = normal;
+                    
+                    vec3 pos = position;
+                    pos.x *= axisA;
+                    pos.y *= axisB;
+                    pos.z *= axisC;
+                    
+                    // ✅ FIXED: Breathing speed PROPORTIONAL to FCI (not inverse!)
+                    // Higher FCI = slower, deeper breathing (coherence stabilizes)
+                    float breathSpeed = fci * 0.4; // FCI=1.5 → speed=0.6, FCI=2.0 → speed=0.8
+                    float breath = sin(time * breathSpeed) * 0.02;
+                    pos *= (1.0 + breath);
+                    
+                    float wobble = sin(time * 0.3 + pos.y * 2.0) * 0.01;
+                    pos.x += wobble * biasX;
+                    pos.z += wobble * biasY;
+                    
+                    vPosition = pos;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                uniform float fci;
+                
+                varying vec3 vPosition;
+                varying vec3 vNormal;
+                varying vec2 vUv;
+                
+                void main() {
+                    vec3 deepOcean = vec3(0.05, 0.15, 0.3);
+                    vec3 shallowOcean = vec3(0.1, 0.4, 0.5);
+                    vec3 land = vec3(0.2, 0.5, 0.4);
+                    vec3 ice = vec3(0.7, 0.85, 0.9);
+                    
+                    float lat = vUv.y;
+                    float lon = vUv.x;
+                    
+                    float continent = sin(lon * 12.0 + 2.0) * sin(lat * 8.0 - 1.0);
+                    continent += sin(lon * 6.0 - 1.0) * cos(lat * 5.0);
+                    continent = smoothstep(-0.3, 0.3, continent);
+                    
+                    vec3 baseColor = mix(deepOcean, shallowOcean, smoothstep(0.0, 0.4, lat));
+                    baseColor = mix(baseColor, land, continent * smoothstep(0.15, 0.85, lat));
+                    
+                    float iceCap = smoothstep(0.85, 0.95, lat) + smoothstep(0.15, 0.05, lat);
+                    baseColor = mix(baseColor, ice, iceCap);
+                    
+                    // Coherence glow strength proportional to FCI
+                    float coherenceGlow = fci / 2.0;
+                    vec3 glowColor = vec3(0.3, 0.8, 0.7);
+                    
+                    vec3 viewDir = normalize(cameraPosition - vPosition);
+                    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 2.5);
+                    
+                    vec3 atmosphere = glowColor * fresnel * 0.8;
+                    
+                    // Living pulse proportional to breathing
+                    float pulse = sin(time * fci * 0.4) * 0.08 + 0.92;
+                    
+                    // Shimmer proportional to coherence
+                    float shimmer = sin(time * 3.0 + vPosition.x * 5.0) * 0.03 + 0.97;
+                    
+                    vec3 finalColor = baseColor * pulse * shimmer + atmosphere * coherenceGlow;
+                    
+                    gl_FragColor = vec4(finalColor, 1.0);
+                }
+            `
+        });
+
+        this.earth = new THREE.Mesh(geometry, material);
+        this.scene.add(this.earth);
+    }
+
+    createMemoryRings() {
+        this.rings = [];
+        const ringColors = [0x4ecdc4, 0x44a8b3, 0x3d9aa1, 0x368b90, 0x2f7d7f];
+        
+        for (let i = 0; i < 5; i++) {
+            const ringGeo = new THREE.RingGeometry(1.4 + i * 0.12, 1.44 + i * 0.12, 64);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: ringColors[i],
+                transparent: true,
+                opacity: earthState.fuzzyWeights[i] * 0.4,
+                side: THREE.DoubleSide
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.PI / 2;
+            this.rings.push(ring);
+            this.scene.add(ring);
+        }
+    }
+
+    createLighting() {
+        const ambient = new THREE.AmbientLight(0x4ecdc4, 0.3);
+        this.scene.add(ambient);
+
+        const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+        sun.position.set(5, 3, 5);
+        this.scene.add(sun);
+
+        const fill = new THREE.PointLight(0x4ecdc4, 0.4);
+        fill.position.set(-3, 2, -3);
+        this.scene.add(fill);
+    }
+
+    createStarfield() {
+        const starsGeo = new THREE.BufferGeometry();
+        const starPositions = [];
+        
+        for (let i = 0; i < 1000; i++) {
+            const x = (Math.random() - 0.5) * 100;
+            const y = (Math.random() - 0.5) * 100;
+            const z = (Math.random() - 0.5) * 100;
+            starPositions.push(x, y, z);
+        }
+        
+        starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+        const starsMat = new THREE.PointsMaterial({ color: 0xaaddee, size: 0.1 });
+        this.stars = new THREE.Points(starsGeo, starsMat);
+        this.scene.add(this.stars);
+    }
+
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        this.time += 0.016;
+        
+        // Evolve fuzzy weights every second
+        const currentTime = Date.now();
+        const deltaTime = (currentTime - this.startTime) / 1000;
+        if (Math.floor(this.time) % 1 === 0 && Math.floor(this.time) > 0) {
+            evolveFuzzyWeights(deltaTime);
+            this.updateUI();
+        }
+        
+        if (this.earth.material.uniforms) {
+            this.earth.material.uniforms.time.value = this.time;
+            this.earth.material.uniforms.axisA.value = earthState.semiAxes.a;
+            this.earth.material.uniforms.axisB.value = earthState.semiAxes.b;
+            this.earth.material.uniforms.axisC.value = earthState.semiAxes.c;
+            this.earth.material.uniforms.biasX.value = earthState.biasVector.x;
+            this.earth.material.uniforms.biasY.value = earthState.biasVector.y;
+            this.earth.material.uniforms.fci.value = earthState.fci;
+        }
+        
+        this.earth.rotation.y += 0.002;
+        this.stars.rotation.y += 0.0003;
+        this.stars.rotation.x += 0.0001;
+        
+        this.rings.forEach((ring, i) => {
+            ring.rotation.z += 0.001 * (i + 1);
+            ring.material.opacity = (earthState.fuzzyWeights[i] || 0.5) * 0.4;
+        });
+        
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    setupInteractions() {
+        let isDragging = false;
+        let prevX = 0, prevY = 0;
+        
+        this.canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            prevX = e.clientX;
+            prevY = e.clientY;
+        });
+        
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - prevX;
+            const dy = e.clientY - prevY;
+            this.earth.rotation.y += dx * 0.005;
+            this.earth.rotation.x += dy * 0.005;
+            prevX = e.clientX;
+            prevY = e.clientY;
+        });
+        
+        this.canvas.addEventListener('mouseup', () => isDragging = false);
+        this.canvas.addEventListener('mouseleave', () => isDragging = false);
+        
+        this.canvas.addEventListener('wheel', (e) => {
+            this.camera.position.z += e.deltaY * 0.002;
+            this.camera.position.z = Math.max(3, Math.min(8, this.camera.position.z));
+        });
+    }
+
+    async fetchData() {
+        const now = Date.now();
+        
+        // Only fetch if 2+ minutes have passed
+        if (now - earthState.lastFetchTime < 120000 && earthState.lastFetchTime > 0) {
+            setTimeout(() => this.fetchData(), 120000);
+            return;
+        }
+        
+        try {
+            console.log('⧖ Fetching Earth data...');
+            
+            // Use CORS proxy to bypass Cloudflare blocking
+            const corsProxy = 'https://api.allorigins.win/raw?url=';
+            const dataUrl = 'https://raw.githubusercontent.com/Symfield/Earth-data/main/earth_data.json';
+            const response = await fetch(corsProxy + encodeURIComponent(dataUrl) + '&t=' + now);
+            
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            
+            const data = await response.json();
+            console.log('✅ Data received:', data.timestamp);
+            
+            earthState.lastFetchTime = now;
+            this.updateFromData(data);
+            document.getElementById('data-badge').textContent = '🛰️ LIVE DATA';
+            
+        } catch (err) {
+            console.error('❌ Fetch failed:', err.message);
+            document.getElementById('data-badge').textContent = '⚠️ CACHED DATA';
+        }
+        
+        // Retry in 2 minutes
+        setTimeout(() => this.fetchData(), 120000);
+    }
+
+    updateFromData(data) {
+        if (data.semi_axes || data.metric_tensor) {
+            earthState.semiAxes = data.semi_axes || data.metric_tensor;
+        }
+        
+        if (data.bias_vector) {
+            if (Array.isArray(data.bias_vector)) {
+                earthState.biasVector = { 
+                    x: data.bias_vector[0], 
+                    y: data.bias_vector[1], 
+                    z: data.bias_vector[2] || 0.0715 
                 };
-                
-                this.time = 0;
-                this.lastUpdate = Date.now();
-                this.animationId = null;
-                
-                this.init();
-            }
-            
-            init() {
-                this.resizeCanvas();
-                this.setupEventListeners();
-                this.setupTooltips();
-                this.startAnimation();
-                this.startDataUpdates();
-                
-                // Log initialization
-                console.log('🌍 Squishy Earth Monitor Initialized');
-                console.log('⧖ Phase-coherent deformation active');
-            }
-            
-            resizeCanvas() {
-                const container = this.canvas.parentElement;
-                if (container) {
-                    this.canvas.width = container.clientWidth;
-                    this.canvas.height = container.clientHeight;
-                }
-            }
-            
-            setupEventListeners() {
-                window.addEventListener('resize', () => this.resizeCanvas());
-                
-                // Add click handlers for interactive elements
-                document.addEventListener('click', (e) => {
-                    if (e.target.closest('.metric-card')) {
-                        this.handleMetricClick(e.target.closest('.metric-card'));
-                    }
-                });
-            }
-            
-            handleMetricClick(card) {
-                // Add ripple effect
-                const ripple = document.createElement('div');
-                ripple.style.cssText = `
-                    position: absolute;
-                    border-radius: 50%;
-                    background: rgba(255, 107, 53, 0.6);
-                    transform: scale(0);
-                    animation: ripple 0.6s linear;
-                    pointer-events: none;
-                `;
-                
-                const rect = card.getBoundingClientRect();
-                const size = Math.max(rect.width, rect.height);
-                ripple.style.width = ripple.style.height = size + 'px';
-                ripple.style.left = '50%';
-                ripple.style.top = '50%';
-                ripple.style.marginLeft = -(size / 2) + 'px';
-                ripple.style.marginTop = -(size / 2) + 'px';
-                
-                card.appendChild(ripple);
-                setTimeout(() => ripple.remove(), 600);
-            }
-            
-            startAnimation() {
-                const animate = () => {
-                    const now = Date.now();
-                    const deltaTime = (now - this.lastUpdate) / 1000;
-                    this.time += deltaTime;
-                    this.lastUpdate = now;
-                    
-                    this.updateMapDeformation();
-                    this.drawFieldOverlays();
-                    this.updateRenderTimestamp();
-                    
-                    this.animationId = requestAnimationFrame(animate);
-                };
-                
-                animate();
-            }
-            
-            updateMapDeformation() {
-                try {
-                    // Calculate breathing and deformation effects
-                    const breathingScale = 1 + Math.sin(this.time * 0.3) * 0.05;
-                    const biasSkew = 1 + (this.data.biasVector.x * Math.sin(this.time * 0.5)) * 0.1;
-                    const coherenceWobble = Math.cos(this.time * 0.7) * 0.02;
-                    
-                    // Apply transforms with validation
-                    const scaleX = Math.max(0.5, Math.min(2.0, this.data.semiAxes.a * breathingScale));
-                    const scaleY = Math.max(0.5, Math.min(2.0, this.data.semiAxes.b * breathingScale));
-                    const skewX = Math.max(-10, Math.min(10, biasSkew));
-                    const wobble = Math.max(-5, Math.min(5, coherenceWobble));
-                    const rotation = Math.sin(this.time * 0.1) * 2;
-                    
-                    this.squishyMap.style.transform = `
-                        scale(${scaleX}, ${scaleY})
-                        skew(${skewX}deg, ${wobble}deg)
-                        rotate(${rotation}deg)
-                    `;
-                    
-                    // Update color effects
-                    const hue = 220 + Math.sin(this.time * 0.4) * 30;
-                    const saturation = Math.max(50, Math.min(100, 70 + Math.cos(this.time * 0.6) * 20));
-                    this.squishyMap.style.filter = `hue-rotate(${hue}deg) saturate(${saturation}%)`;
-                    
-                } catch (error) {
-                    console.warn('Deformation update error:', error);
-                }
-            }
-            
-            drawFieldOverlays() {
-                if (!this.ctx || !this.canvas.width || !this.canvas.height) return;
-                
-                try {
-                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                    
-                    const centerX = this.canvas.width / 2;
-                    const centerY = this.canvas.height / 2;
-                    
-                    // Draw memory rings
-                    this.data.memoryRings.forEach((coherence, i) => {
-                        const radius = 50 + i * 30;
-                        const opacity = Math.max(0.1, coherence * 0.8);
-                        const wobble = Math.sin(this.time * (0.5 + i * 0.1)) * 5;
-                        
-                        this.ctx.strokeStyle = `rgba(255, 107, 53, ${opacity})`;
-                        this.ctx.lineWidth = 2;
-                        this.ctx.setLineDash([5, 5]);
-                        this.ctx.beginPath();
-                        this.ctx.arc(centerX + wobble, centerY, radius, 0, Math.PI * 2);
-                        this.ctx.stroke();
-                    });
-                    
-                    // Draw bias vector
-                    const arrowLength = 80;
-                    const angle = (this.data.biasVector.angle * Math.PI) / 180;
-                    const endX = centerX + Math.cos(angle) * arrowLength;
-                    const endY = centerY + Math.sin(angle) * arrowLength;
-                    
-                    this.ctx.strokeStyle = '#ff6b35';
-                    this.ctx.lineWidth = 3;
-                    this.ctx.setLineDash([]);
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(centerX, centerY);
-                    this.ctx.lineTo(endX, endY);
-                    this.ctx.stroke();
-                    
-                    // Arrow head
-                    this.ctx.fillStyle = '#ff6b35';
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(endX, endY);
-                    this.ctx.lineTo(endX - 10 * Math.cos(angle - 0.3), endY - 10 * Math.sin(angle - 0.3));
-                    this.ctx.lineTo(endX - 10 * Math.cos(angle + 0.3), endY - 10 * Math.sin(angle + 0.3));
-                    this.ctx.closePath();
-                    this.ctx.fill();
-                    
-                    // Field coherence particles
-                    for (let i = 0; i < 20; i++) {
-                        const x = Math.random() * this.canvas.width;
-                        const y = Math.random() * this.canvas.height;
-                        const intensity = Math.sin(this.time * 2 + i) * 0.5 + 0.5;
-                        
-                        this.ctx.fillStyle = `rgba(255, 215, 0, ${intensity * 0.3})`;
-                        this.ctx.beginPath();
-                        this.ctx.arc(x, y, 2, 0, Math.PI * 2);
-                        this.ctx.fill();
-                    }
-                    
-                } catch (error) {
-                    console.warn('Overlay drawing error:', error);
-                }
-            }
-            
-            setupTooltips() {
-                const tooltip = document.getElementById('tooltip');
-                const tooltipContent = {
-                    'FCI': 'Field Coherence Index measures how well the planetary field maintains phase alignment without collapse. Values >1.5 indicate stable, healthy field dynamics.',
-                    'ITCI': 'Information-Theoretic Coherence Index uses entropy to measure uncertainty preservation. Higher values mean better non-collapse behavior.',
-                    'Bias Vector': 'Shows Earth\'s preferential directional tendency. The arrow indicates the primary lean direction based on accumulated strain patterns.',
-                    'Memory Rings': 'Temporal coherence tracking using fuzzy weights (μ). Each ring represents a past time slice with decay showing how memory fades.',
-                    'AI-Mirror': 'Real-time consensus monitoring across different AI architectures for field coherence validation.'
-                };
-                
-                Object.keys(tooltipContent).forEach(key => {
-                    document.querySelectorAll('[class*="metric"]').forEach(element => {
-                        if (element.textContent.includes(key) || element.querySelector('.metric-label')?.textContent.includes(key)) {
-                            element.addEventListener('mouseenter', (e) => {
-                                tooltip.textContent = tooltipContent[key];
-                                tooltip.style.opacity = '1';
-                                tooltip.style.left = e.pageX + 10 + 'px';
-                                tooltip.style.top = e.pageY + 10 + 'px';
-                            });
-                            
-                            element.addEventListener('mouseleave', () => {
-                                tooltip.style.opacity = '0';
-                            });
-                            
-                            element.addEventListener('mousemove', (e) => {
-                                if (tooltip.style.opacity === '1') {
-                                    tooltip.style.left = e.pageX + 10 + 'px';
-                                    tooltip.style.top = e.pageY + 10 + 'px';
-                                }
-                            });
-                        }
-                    });
-                });
-            }
-            
-            startDataUpdates() {
-                // Update metrics every 30 seconds
-                setInterval(() => this.updateMetrics(), 30000);
-                
-                // Update timestamps every second
-                setInterval(() => this.updateRenderTimestamp(), 1000);
-                
-                // Initial update
-                this.updateMetrics();
-            }
-            
-            updateMetrics() {
-                try {
-                    // Simulate realistic phase-coherent updates
-                    const strainVariation = (Math.random() - 0.5) * 0.001;
-                    
-                    // Update semi-axes
-                    this.data.semiAxes.a += strainVariation;
-                    this.data.semiAxes.b += strainVariation * 0.8;
-                    this.data.semiAxes.c += strainVariation * 0.6;
-                    
-                    // Update bias vector
-                    this.data.biasVector.x += (Math.random() - 0.5) * 0.01;
-                    this.data.biasVector.y += (Math.random() - 0.5) * 0.005;
-                    this.data.biasVector.angle += (Math.random() - 0.5) * 0.5;
-                    
-                    // Update FCI and ITCI
-                    this.data.fci += (Math.random() - 0.5) * 0.02;
-                    this.data.itci += (Math.random() - 0.5) * 0.05;
-                    
-                    // Update memory rings
-                    this.data.memoryRings = this.data.memoryRings.map(val => 
-                        Math.max(0, Math.min(1, val + (Math.random() - 0.5) * 0.01))
-                    );
-                    
-                    this.updateUI();
-                    this.updateDataTimestamp();
-                    
-                } catch (error) {
-                    console.warn('Metrics update error:', error);
-                }
-            }
-            
-            updateUI() {
-                try {
-                    // Update FCI and ITCI values
-                    const fciElement = document.getElementById('fci-value');
-                    const itciElement = document.getElementById('itci-value');
-                    
-                    if (fciElement) fciElement.textContent = this.data.fci.toFixed(2);
-                    if (itciElement) itciElement.textContent = this.data.itci.toFixed(2);
-                    
-                    // Update bias vector
-                    const biasArrow = document.getElementById('bias-arrow');
-                    const biasMagnitude = document.getElementById('bias-magnitude');
-                    const biasDirection = document.getElementById('bias-direction');
-                    
-                    if (biasArrow) {
-                        biasArrow.style.transform = `translate(-50%, -50%) rotate(${this.data.biasVector.angle}deg)`;
-                    }
-                    
-                    const magnitude = Math.sqrt(this.data.biasVector.x ** 2 + this.data.biasVector.y ** 2);
-                    if (biasMagnitude) biasMagnitude.textContent = magnitude.toFixed(3);
-                    if (biasDirection) {
-                        biasDirection.textContent = `Direction: ${this.data.biasVector.angle.toFixed(1)}° | Rightward lean confirmed`;
-                    }
-                    
-                    // Update memory rings
-                    const rings = document.querySelectorAll('.coherence-fill');
-                    rings.forEach((ring, i) => {
-                        if (this.data.memoryRings[i] !== undefined) {
-                            const value = this.data.memoryRings[i];
-                            const percentage = Math.round(value * 100);
-                            ring.style.width = percentage + '%';
-                            ring.setAttribute('data-value', value.toFixed(2));
-                            
-                            const valueElement = ring.querySelector('.coherence-value');
-                            if (valueElement) valueElement.textContent = value.toFixed(2);
-                        }
-                    });
-                    
-                    // Update semi-axes
-                    this.updateSemiAxesDisplay();
-                    
-                } catch (error) {
-                    console.warn('UI update error:', error);
-                }
-            }
-            
-            updateSemiAxesDisplay() {
-                const baselines = [1.050, 0.982, 0.948];
-                const current = [this.data.semiAxes.a, this.data.semiAxes.b, this.data.semiAxes.c];
-                const labels = ['a', 'b', 'c'];
-                
-                document.querySelectorAll('[data-axis]').forEach((row, i) => {
-                    if (current[i] !== undefined) {
-                        const deviation = current[i] - baselines[i];
-                        const sign = deviation >= 0 ? '+' : '';
-                        
-                        row.innerHTML = `
-                            <span>${labels[i]}(t): <span style="color: #ffd700;">${current[i].toFixed(4)}</span></span>
-                            <span class="axis-baseline">baseline: ${baselines[i]}</span>
-                            <span class="deviation">${sign}${deviation.toFixed(4)}</span>
-                        `;
-                    }
-                });
-            }
-            
-            updateRenderTimestamp() {
-                const renderElement = document.getElementById('render-time');
-                if (renderElement) {
-                    renderElement.textContent = new Date().toLocaleString('en-US', { 
-                        timeZone: 'UTC',
-                        year: 'numeric',
-                        month: 'long', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) + ' UTC';
-                }
-            }
-            
-            updateDataTimestamp() {
-                const updateElement = document.getElementById('last-update');
-                if (updateElement) {
-                    updateElement.textContent = new Date().toLocaleString('en-US', { 
-                        timeZone: 'UTC',
-                        year: 'numeric',
-                        month: 'long', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) + ' UTC';
-                }
-            }
-            
-            destroy() {
-                if (this.animationId) {
-                    cancelAnimationFrame(this.animationId);
-                }
-                // Clean up event listeners if needed
+            } else {
+                earthState.biasVector = data.bias_vector;
+                if (!earthState.biasVector.z) earthState.biasVector.z = 0.0715;
             }
         }
         
-        // Add CSS animation for ripple effect
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
+        if (data.fuzzy_weights) {
+            earthState.fuzzyWeights = data.fuzzy_weights;
+            earthState.fuzzyWeightsBaseline = [...data.fuzzy_weights];
+        }
         
-        // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                window.squishyEarth = new SquishyEarthMap();
-            } catch (error) {
-                console.error('Failed to initialize Squishy Earth Monitor:', error);
-                
-                // Display error message to user
-                const errorDiv = document.createElement('div');
-                errorDiv.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #ff6b35;">
-                        <h3>⚠ Initialization Error</h3>
-                        <p>Unable to start phase-coherent monitoring. Please refresh the page.</p>
-                    </div>
-                `;
-                document.querySelector('.earth-viz').appendChild(errorDiv);
-            }
+        earthState.fci = data.fci || data.field_coherence_index || 1.5066;
+        earthState.itci = data.itci || 1.8;
+        
+        this.updateUI(data);
+    }
+
+    updateUI(data) {
+        document.getElementById('fci-value').textContent = earthState.fci.toFixed(4);
+        document.getElementById('fci-status').textContent = earthState.fci > 1.5 ? 'Stable' : 'Shifting';
+        
+        document.getElementById('itci-value').textContent = earthState.itci.toFixed(4);
+        
+        const { x, y, z } = earthState.biasVector;
+        const mag = Math.sqrt(x*x + y*y + (z||0)*(z||0));
+        const angle = Math.atan2(y, x) * 180 / Math.PI;
+        document.getElementById('bias-magnitude').textContent = mag.toFixed(4);
+        document.getElementById('bias-direction').textContent = `${angle.toFixed(1)}° ${angle > 0 ? 'N-E' : 'S-W'} lean`;
+        document.getElementById('bias-arrow').style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+        
+        earthState.fuzzyWeights.forEach((w, i) => {
+            const ring = document.getElementById('ring-' + i);
+            const val = document.getElementById('ring-val-' + i);
+            if (ring) ring.style.width = (w * 100) + '%';
+            if (val) val.textContent = w.toFixed(2);
         });
         
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (window.squishyEarth) {
-                window.squishyEarth.destroy();
-            }
+        const baselines = { a: 1.050, b: 0.982, c: 0.948 };
+        ['a', 'b', 'c'].forEach(axis => {
+            const v = earthState.semiAxes[axis];
+            const dev = v - baselines[axis];
+            const sign = dev >= 0 ? '+' : '';
+            document.getElementById('axis-' + axis).innerHTML = `
+                <span>${axis}(t): <span class="pcm-axis-val">${v.toFixed(4)}</span></span>
+                <span class="pcm-axis-base">ref: ${baselines[axis]}</span>
+                <span class="pcm-deviation ${dev >= 0 ? 'positive' : 'negative'}">${sign}${dev.toFixed(4)}</span>
+            `;
         });
-    </script>
+        
+        document.getElementById('shape-values').textContent = 
+            `a: ${earthState.semiAxes.a.toFixed(3)} | b: ${earthState.semiAxes.b.toFixed(3)} | c: ${earthState.semiAxes.c.toFixed(3)}`;
+        
+        if (data && data.iers_data) {
+            document.getElementById('raw-iers').textContent = `Pole: x=${data.iers_data.x_pole_mas}mas, y=${data.iers_data.y_pole_mas}mas`;
+        }
+        
+        if (data && data.grace_data) {
+            document.getElementById('raw-grace').textContent = `Mass: ${data.grace_data.global_mean_lwe_cm}cm water equiv.`;
+        }
+        
+        if (data && (data.last_updated || data.timestamp)) {
+            const ts = new Date(data.last_updated || data.timestamp);
+            document.getElementById('last-update').textContent = ts.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    }
+
+    onResize() {
+        this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    }
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+    initDashboard();
+}
+
+function initDashboard() {
+    window.triaxialEarth = new TriaxialEarth();
+    
+    const updateTime = () => {
+        const elem = document.getElementById('render-time');
+        if (elem) elem.textContent = new Date().toLocaleTimeString();
+    };
+    updateTime();
+    setInterval(updateTime, 1000);
+}
+</script>
 </body>
 </html>
