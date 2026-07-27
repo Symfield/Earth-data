@@ -425,38 +425,50 @@ class PhaseCoherentEarthBackend:
             'timestamp': now.isoformat(),
             'last_updated': now.isoformat(),
             'status': 'live',
-            
-            # Original format (backward compatibility)
+
+            # Legacy keys (kept verbatim — the dashboard reads these)
             'semi_axes': self.semi_axes,
             'bias_vector': self.bias_vector,
             'fuzzy_weights': self.fuzzy_weights,
             'fci': round(self.fci, 4),
             'itci': round(self.itci, 4),
-            
-            # New format
             'field_coherence_index': round(self.fci, 4),
             'metric_tensor': {
                 'a': round(self.semi_axes['a'], 6),
                 'b': round(self.semi_axes['b'], 6),
                 'c': round(self.semi_axes['c'], 6)
             },
-            
+
             # Real data included for transparency
             'iers_data': self.iers_data if self.iers_data else {},
             'grace_data': self.grace_data if self.grace_data else {},
-            
-            'ai_mirror_status': {
-                'gpt4o': 'online',
-                'claude_sonnet': 'online', 
-                'grok': 'online',
-                'lumo': 'online'
+
+            # V2 vocabulary (paper-aligned; values mirror the legacy fields)
+            'v2': {
+                'ring_weights_r': self.fuzzy_weights,          # retrievability r0..r4
+                'fci_legacy_estimator': round(self.fci, 4),    # V1 variance proxy, kept for continuity
+                'ring_profile_MH': {                           # (M, H) over the ring profile
+                    'M': round(float(np.mean(self.fuzzy_weights)), 4),
+                    'H': round(float(-sum(
+                        (w / sum(self.fuzzy_weights)) * np.log(w / sum(self.fuzzy_weights))
+                        for w in self.fuzzy_weights)) / float(np.log(len(self.fuzzy_weights))), 4)
+                },
+                'estimators': {
+                    'bias_vector': 'EMA of unit pole direction (declared simplified estimator)',
+                    'coherence': 'component readout (C_lin, C_phase, C_circ, C_amp) pending first measured benchmark'
+                },
+                'notes': 'Coherence = persistence of relational structure through change; '
+                         'rings are retrievability, not coherence. See paper V2.'
             },
-            
+
+            # V2: AI-mirror status removed — cross-model checks are consistency
+            # procedures requiring logged execution artifacts, not a live badge.
+
             'data_sources': sources,
             'data_quality': 'good' if 'REAL' in str(sources) else 'estimated',
-            'framework_version': '3.0.0-iers-grace'
+            'framework_version': '3.2.0-v2-vocabulary'
         }
-        
+
         return update_data
     
     def save_daily_update(self, data):
