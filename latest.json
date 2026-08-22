@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-08-21T06:37:17.318386+00:00",
-  "last_updated": "2026-08-21T06:37:17.318386+00:00",
+  "timestamp": "2026-08-22T06:31:56.414719+00:00",
+  "last_updated": "2026-08-22T06:31:56.414719+00:00",
   "status": "live",
   "semi_axes": {
     "a": 1.1,
@@ -10,50 +10,50 @@
   "bias_vector": {
     "x": 0.5,
     "y": 0.5,
-    "z": 0.0017347402012962909
+    "z": 0.0013843481811666616
   },
   "fuzzy_weights": [
-    0.6898415279526121,
-    0.4587443327518602,
+    0.6829774900627558,
+    0.44966058635036604,
     0.3,
     0.3,
     0.3
   ],
-  "fci": 1.6532,
+  "fci": 1.6658,
   "itci": 1.8,
-  "field_coherence_index": 1.6532,
+  "field_coherence_index": 1.6658,
   "metric_tensor": {
     "a": 1.1,
     "b": 1.05,
     "c": 1.0
   },
   "iers_data": {
-    "x_pole_mas": 219.64,
-    "y_pole_mas": 349.44,
-    "ut1_utc_ms": 6.778,
+    "x_pole_mas": 218.42,
+    "y_pole_mas": 348.75,
+    "ut1_utc_ms": 6.727,
     "source": "IERS_C04_REAL",
     "quality": "good"
   },
   "grace_data": {
-    "global_mean_lwe_cm": 6.529,
-    "global_std_lwe_cm": 10.079,
-    "greenland_lwe_cm": -217.477,
-    "antarctica_lwe_cm": -81.458,
+    "global_mean_lwe_cm": -2.843,
+    "global_std_lwe_cm": 18.583,
+    "greenland_lwe_cm": -262.28,
+    "antarctica_lwe_cm": -85.362,
     "source": "ESTIMATED",
     "quality": "estimated"
   },
   "v2": {
     "ring_weights_r": [
-      0.6898415279526121,
-      0.4587443327518602,
+      0.6829774900627558,
+      0.44966058635036604,
       0.3,
       0.3,
       0.3
     ],
-    "fci_legacy_estimator": 1.6532,
+    "fci_legacy_estimator": 1.6658,
     "ring_profile_MH": {
-      "M": 0.4097,
-      "H": 0.9603
+      "M": 0.4065,
+      "H": 0.9614
     },
     "estimators": {
       "bias_vector": "EMA of unit pole direction (declared simplified estimator)",
