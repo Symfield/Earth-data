@@ -82,4 +82,5 @@ jobs:
 
           # Otherwise, commit and push
           git commit -m "🌍 Auto‑update Earth data $(date -u +%Y-%m-%d) [IERS+GRACE‑FO]"
+          git pull --rebase
           git push
