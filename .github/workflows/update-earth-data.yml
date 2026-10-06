@@ -52,8 +52,8 @@ jobs:
             numpy \
             earthaccess \
             xarray \
-            netcdf4 \
-            h5netcdf
+            h5netcdf \
+            h5py
 
       # -----------------------------------------------------------------
       # 4️⃣ Run the backend script (this creates/updates the JSON files)
