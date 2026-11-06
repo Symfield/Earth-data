@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-11-05T13:54:06.959190+00:00",
-  "last_updated": "2026-11-05T13:54:06.959190+00:00",
+  "timestamp": "2026-11-06T13:39:26.329933+00:00",
+  "last_updated": "2026-11-06T13:39:26.329933+00:00",
   "status": "live",
   "semi_axes": {
     "a": 1.1,
@@ -8,29 +8,29 @@
     "c": 1.0
   },
   "bias_vector": {
-    "x": 0.40017583805807033,
+    "x": 0.39865764587799646,
     "y": 0.5,
-    "z": -7.075952081399534e-05
+    "z": -6.261256873259581e-05
   },
   "fuzzy_weights": [
-    0.3162275032614581,
+    0.3130809870309211,
     0.3,
     0.3,
     0.3,
     0.3
   ],
-  "fci": 2.0991,
+  "fci": 2.0994,
   "itci": 1.8,
-  "field_coherence_index": 2.0991,
+  "field_coherence_index": 2.0994,
   "metric_tensor": {
     "a": 1.1,
     "b": 1.05,
     "c": 1.0
   },
   "iers_data": {
-    "x_pole_mas": 133.89,
-    "y_pole_mas": 317.99,
-    "ut1_utc_ms": -58.132,
+    "x_pole_mas": 132.87,
+    "y_pole_mas": 318.52,
+    "ut1_utc_ms": -59.505,
     "source": "IERS_C04_REAL",
     "quality": "good"
   },
@@ -45,15 +45,15 @@
   },
   "v2": {
     "ring_weights_r": [
-      0.3162275032614581,
+      0.3130809870309211,
       0.3,
       0.3,
       0.3,
       0.3
     ],
-    "fci_legacy_estimator": 2.0991,
+    "fci_legacy_estimator": 2.0994,
     "ring_profile_MH": {
-      "M": 0.3032,
+      "M": 0.3026,
       "H": 0.9999
     },
     "estimators": {
