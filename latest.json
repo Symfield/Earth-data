@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-11-10T14:12:13.842505+00:00",
-  "last_updated": "2026-11-10T14:12:13.842505+00:00",
+  "timestamp": "2026-11-11T13:27:08.939954+00:00",
+  "last_updated": "2026-11-11T13:27:08.939954+00:00",
   "status": "live",
   "semi_axes": {
     "a": 1.1,
@@ -8,12 +8,12 @@
     "c": 1.0
   },
   "bias_vector": {
-    "x": 0.3897181416876907,
+    "x": 0.38720133065911827,
     "y": 0.5,
-    "z": -3.739693734545612e-05
+    "z": -3.259424361091051e-05
   },
   "fuzzy_weights": [
-    0.30080490593869447,
+    0.3,
     0.3,
     0.3,
     0.3,
@@ -28,24 +28,24 @@
     "c": 1.0
   },
   "iers_data": {
-    "x_pole_mas": 126.9,
-    "y_pole_mas": 321.26,
-    "ut1_utc_ms": -64.219,
+    "x_pole_mas": 125.88,
+    "y_pole_mas": 321.54,
+    "ut1_utc_ms": -65.235,
     "source": "IERS_C04_REAL",
     "quality": "good"
   },
   "grace_data": {
-    "global_mean_lwe_cm": -0.949,
-    "global_std_lwe_cm": 27.26,
+    "global_mean_lwe_cm": -0.954,
+    "global_std_lwe_cm": 27.389,
     "greenland_lwe_cm": 0,
-    "antarctica_lwe_cm": -1.071,
+    "antarctica_lwe_cm": -1.063,
     "source": "GRACE-FO_REAL",
     "dataset": "TELLUS_GRAC-GRFO_MASCON_GRID_RL06.3_V4",
     "quality": "good"
   },
   "v2": {
     "ring_weights_r": [
-      0.30080490593869447,
+      0.3,
       0.3,
       0.3,
       0.3,
@@ -53,7 +53,7 @@
     ],
     "fci_legacy_estimator": 2.1,
     "ring_profile_MH": {
-      "M": 0.3002,
+      "M": 0.3,
       "H": 1.0
     },
     "estimators": {
